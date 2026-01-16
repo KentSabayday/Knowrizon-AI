@@ -10,18 +10,45 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Check for existing session on mount
+  // Check for existing session on mount and validate token
   useEffect(() => {
-    const storedToken = localStorage.getItem('mentormind_token');
-    const storedUser = localStorage.getItem('mentormind_user');
-    const storedIsAnonymous = localStorage.getItem('mentormind_anonymous');
+    const validateSession = async () => {
+      const storedToken = localStorage.getItem('mentormind_token');
+      const storedUser = localStorage.getItem('mentormind_user');
+      const storedIsAnonymous = localStorage.getItem('mentormind_anonymous');
+      
+      if (storedToken && storedUser) {
+        // Validate token by making a test API call
+        try {
+          const response = await fetch(`${API_BASE}/auth/validate`, {
+            headers: { 'Authorization': `Bearer ${storedToken}` }
+          });
+          
+          if (response.ok) {
+            // Token is valid
+            setToken(storedToken);
+            setUser(JSON.parse(storedUser));
+            setIsAnonymous(storedIsAnonymous === 'true');
+          } else {
+            // Token is invalid, clear session
+            console.log('Session expired or invalid, clearing...');
+            localStorage.removeItem('mentormind_token');
+            localStorage.removeItem('mentormind_user');
+            localStorage.removeItem('mentormind_anonymous');
+          }
+        } catch (err) {
+          // Network error or server down, try to use cached session
+          console.warn('Could not validate session:', err);
+          // Clear session to be safe
+          localStorage.removeItem('mentormind_token');
+          localStorage.removeItem('mentormind_user');
+          localStorage.removeItem('mentormind_anonymous');
+        }
+      }
+      setIsLoading(false);
+    };
     
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-      setIsAnonymous(storedIsAnonymous === 'true');
-    }
-    setIsLoading(false);
+    validateSession();
   }, []);
 
   const saveSession = (userData, sessionToken, anonymous = false) => {

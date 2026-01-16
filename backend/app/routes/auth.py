@@ -201,3 +201,32 @@ def get_current_user():
         return jsonify({'error': 'Session expired, please login again'}), 401
     
     return jsonify({'user': user.to_dict()}), 200
+
+
+@auth_bp.route('/validate', methods=['GET'])
+@db_error_handler
+def validate_token():
+    """
+    Validate the current session token.
+    
+    Headers:
+        - Authorization: Bearer <token>
+    
+    Returns:
+        - 200: Token is valid
+        - 401: Token is invalid or expired
+    """
+    auth_header = request.headers.get('Authorization')
+    
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'valid': False, 'error': 'Authorization required'}), 401
+    
+    token = auth_header.split(' ')[1]
+    
+    # Validate the token
+    user = auth_service.validate_token(token)
+    
+    if not user:
+        return jsonify({'valid': False, 'error': 'Session expired'}), 401
+    
+    return jsonify({'valid': True, 'user': user.to_dict()}), 200
