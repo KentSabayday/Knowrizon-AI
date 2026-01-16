@@ -1,10 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import websocketService from '../lib/websocket';
+import { API_BASE } from '../lib/api';
 
 const FriendsContext = createContext(null);
-
-const API_BASE = 'http://localhost:5000/api';
 
 export function FriendsProvider({ children }) {
   const { token, isAuthenticated } = useAuth();

@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -21,10 +21,23 @@ def create_app():
     """Create and configure the Flask application."""
     global socketio
     
-    app = Flask(__name__)
+    # Determine static folder path for serving frontend
+    static_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'frontend', 'dist')
     
-    # Enable CORS for frontend communication
-    CORS(app, origins=["http://localhost:5173", "http://localhost:5174"])
+    app = Flask(__name__, static_folder=static_folder, static_url_path='')
+    
+    # Enable CORS for frontend communication (include Heroku domains)
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5000",
+    ]
+    # Add Heroku app URL if available
+    heroku_app_name = os.environ.get('HEROKU_APP_NAME')
+    if heroku_app_name:
+        allowed_origins.append(f"https://{heroku_app_name}.herokuapp.com")
+    
+    CORS(app, origins=allowed_origins, supports_credentials=True)
     
     # Initialize database
     from app.database import init_db
@@ -41,5 +54,22 @@ def create_app():
     # Initialize SocketIO
     from app.sockets import init_socketio
     socketio = init_socketio(app)
+    
+    # Serve React frontend for non-API routes
+    @app.route('/')
+    def serve_index():
+        if os.path.exists(os.path.join(app.static_folder, 'index.html')):
+            return send_from_directory(app.static_folder, 'index.html')
+        return {'message': 'MentorMind API is running. Frontend not built yet.'}, 200
+    
+    @app.route('/<path:path>')
+    def serve_static(path):
+        # Try to serve static file first
+        if os.path.exists(os.path.join(app.static_folder, path)):
+            return send_from_directory(app.static_folder, path)
+        # Fall back to index.html for SPA routing
+        if os.path.exists(os.path.join(app.static_folder, 'index.html')):
+            return send_from_directory(app.static_folder, 'index.html')
+        return {'error': 'Not found'}, 404
     
     return app

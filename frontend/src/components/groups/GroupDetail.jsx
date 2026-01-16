@@ -5,8 +5,7 @@ import { useCall } from '../../context/CallContext';
 import { ParticipantList } from './ParticipantList';
 import { GroupInvite } from './GroupInvite';
 import { GroupChat } from './GroupChat';
-
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE } from '../../lib/api';
 
 export function GroupDetail({ group, onBack, onUpdate }) {
   const { user, token } = useAuth();

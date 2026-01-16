@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from '../ui/Avatar';
-
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE } from '../../lib/api';
 
 export function GroupInvite({ groupId, onClose, onInvited }) {
   const { token } = useAuth();

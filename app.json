@@ -1,0 +1,36 @@
+{
+  "name": "MentorMind",
+  "description": "Personal AI Tutor - Learn smarter with AI-powered tutoring, quizzes, and progress tracking",
+  "repository": "https://github.com/yourusername/mentormind",
+  "keywords": ["ai", "education", "tutor", "learning", "flask", "react"],
+  "stack": "heroku-24",
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "env": {
+    "NEBIUS_API_KEY": {
+      "description": "API key for Nebius AI services",
+      "required": true
+    },
+    "SECRET_KEY": {
+      "description": "Flask secret key for session management",
+      "generator": "secret"
+    },
+    "FLASK_ENV": {
+      "description": "Flask environment",
+      "value": "production"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": []
+}

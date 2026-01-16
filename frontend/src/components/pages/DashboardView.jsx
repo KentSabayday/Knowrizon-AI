@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { useAuth } from '../../context/AuthContext';
-
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE } from '../../lib/api';
 
 /**
  * DashboardView - Main dashboard showing overview and quick actions.

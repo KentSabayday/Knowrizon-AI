@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext';
 import websocketService from '../lib/websocket';
 import webrtcService from '../lib/webrtc';
 import audioService from '../lib/audio';
+import { API_BASE } from '../lib/api';
 
 const CallContext = createContext(null);
 
@@ -155,7 +156,7 @@ export function CallProvider({ children }) {
         try {
           // Call the cleanup API endpoint
           const cleanupResponse = await fetch(
-            `http://localhost:5000/api/calls/cleanup/${contextType}/${contextId}`,
+            `${API_BASE}/calls/cleanup/${contextType}/${contextId}`,
             {
               method: 'POST',
               headers: {

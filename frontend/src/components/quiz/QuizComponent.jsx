@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui/card';
 import { useAuth } from '../../context/AuthContext';
-
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE } from '../../lib/api';
 
 /**
  * QuizComponent for displaying and managing quiz interactions.

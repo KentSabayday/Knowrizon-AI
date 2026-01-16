@@ -4,8 +4,7 @@ import { ContentUploader } from '../content/ContentUploader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/button';
-
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE } from '../../lib/api';
 
 /**
  * LessonsView - Main learning interface with chat and content upload.

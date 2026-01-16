@@ -4,8 +4,7 @@ import { GroupList } from './GroupList';
 import { GroupCreate } from './GroupCreate';
 import { GroupDetail } from './GroupDetail';
 import { GroupInvitations } from './GroupInvitations';
-
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE } from '../../lib/api';
 
 export function GroupLearningView() {
   const { token } = useAuth();

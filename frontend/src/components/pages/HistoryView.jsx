@@ -3,8 +3,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useAuth } from '../../context/AuthContext';
 import ReactMarkdown from 'react-markdown';
-
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE } from '../../lib/api';
 
 /**
  * HistoryView - Displays all past chat conversations with search functionality

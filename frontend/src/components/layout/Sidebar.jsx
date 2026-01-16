@@ -22,8 +22,8 @@ export function Sidebar({ currentPath = '/dashboard', onNavigate }) {
       {/* Logo area */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-3">
-          <img src="/logo.svg" alt="MentorMind" className="w-8 h-8" />
-          <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+          <img src="/logo.svg" alt="MentorMind" className="w-12 h-12" />
+          <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
             MentorMind
           </span>
         </div>
