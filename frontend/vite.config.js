@@ -12,16 +12,15 @@ export default defineConfig({
     }),
     tailwindcss(),
   ],
+  define: {
+    // Expose Pusher public keys to the browser via import.meta.env
+    // In Vercel, set VITE_PUSHER_KEY and VITE_PUSHER_CLUSTER as env vars
+  },
   server: {
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
-      },
-      '/socket.io': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-        ws: true,
       },
     },
   },

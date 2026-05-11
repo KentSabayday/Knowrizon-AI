@@ -5,15 +5,13 @@ Replaces Socket.IO event handlers with REST endpoints that trigger Pusher events
 Each action: client POSTs → Flask saves to DB → Flask triggers Pusher → done.
 """
 import logging
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 
 from app.pusher_client import trigger, trigger_batch, authenticate_channel, authenticate_presence
 from app.decorators import require_auth
-from app.services.auth_service import auth_service
 from app.services.chat_service import chat_service
 from app.services.call_service import call_service
 from app.services.presence_service import presence_service
-from app.database import db
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +24,9 @@ realtime_bp = Blueprint('realtime', __name__)
 
 @realtime_bp.route('/pusher/auth', methods=['POST'])
 @require_auth
-def pusher_auth(current_user):
+def pusher_auth():
     """Authenticate a Pusher private or presence channel subscription."""
+    user = g.current_user
     socket_id = request.form.get('socket_id')
     channel_name = request.form.get('channel_name')
 
@@ -39,10 +38,10 @@ def pusher_auth(current_user):
         auth_response = authenticate_presence(
             channel_name,
             socket_id,
-            user_id=current_user.id,
+            user_id=user.id,
             user_info={
-                'name': current_user.name,
-                'email': getattr(current_user, 'email', ''),
+                'name': user.name,
+                'email': getattr(user, 'email', ''),
             },
         )
     else:
@@ -61,8 +60,9 @@ def pusher_auth(current_user):
 
 @realtime_bp.route('/realtime/chat/message', methods=['POST'])
 @require_auth
-def send_chat_message(current_user):
+def send_chat_message():
     """Send a chat message and broadcast via Pusher."""
+    user = g.current_user
     data = request.get_json(silent=True) or {}
     chat_id = data.get('chatId')
     content = data.get('content')
@@ -73,10 +73,10 @@ def send_chat_message(current_user):
 
     # Save to database
     if chat_type == 'direct':
-        message, error = chat_service.send_message(chat_id, current_user.id, content)
+        message, error = chat_service.send_message(chat_id, user.id, content)
     else:
         from app.services.group_service import group_service
-        message, error = group_service.send_group_message(chat_id, current_user.id, content)
+        message, error = group_service.send_group_message(chat_id, user.id, content)
 
     if error:
         return jsonify({'error': error}), 400
@@ -92,8 +92,9 @@ def send_chat_message(current_user):
 
 @realtime_bp.route('/realtime/chat/typing', methods=['POST'])
 @require_auth
-def send_typing(current_user):
+def send_typing():
     """Broadcast typing indicator via Pusher."""
+    user = g.current_user
     data = request.get_json(silent=True) or {}
     chat_id = data.get('chatId')
     chat_type = data.get('chatType', 'direct')
@@ -104,8 +105,8 @@ def send_typing(current_user):
 
     channel = f'private-{chat_type}-{chat_id}'
     trigger(channel, 'chat:typing', {
-        'userId': current_user.id,
-        'userName': current_user.name,
+        'userId': user.id,
+        'userName': user.name,
         'isTyping': is_typing,
     })
 
@@ -114,8 +115,9 @@ def send_typing(current_user):
 
 @realtime_bp.route('/realtime/chat/read', methods=['POST'])
 @require_auth
-def mark_read(current_user):
+def mark_read():
     """Mark messages as read and broadcast via Pusher."""
+    user = g.current_user
     data = request.get_json(silent=True) or {}
     chat_id = data.get('chatId')
     message_ids = data.get('messageIds')
@@ -125,11 +127,11 @@ def mark_read(current_user):
         return jsonify({'error': 'chatId required'}), 400
 
     if chat_type == 'direct':
-        chat_service.mark_as_read(chat_id, current_user.id, message_ids)
+        chat_service.mark_as_read(chat_id, user.id, message_ids)
 
     channel = f'private-{chat_type}-{chat_id}'
     trigger(channel, 'chat:read', {
-        'userId': current_user.id,
+        'userId': user.id,
         'messageIds': message_ids,
     })
 
@@ -142,19 +144,20 @@ def mark_read(current_user):
 
 @realtime_bp.route('/realtime/presence/online', methods=['POST'])
 @require_auth
-def go_online(current_user):
+def go_online():
     """Mark user as online and notify friends via Pusher."""
-    presence_service.set_online(current_user.id, socket_id=None)
+    user = g.current_user
+    presence_service.set_online(user.id, socket_id=None)
 
     from app.models.friend import Friend
-    friendships = Friend.query.filter_by(user_id=current_user.id).all()
+    friendships = Friend.query.filter_by(user_id=user.id).all()
 
     events = []
     for f in friendships:
         events.append({
             'channel': f'private-user-{f.friend_id}',
             'name': 'presence:online',
-            'data': {'userId': current_user.id, 'userName': current_user.name},
+            'data': {'userId': user.id, 'userName': user.name},
         })
 
     # Pusher batch supports up to 10 events per call
@@ -166,13 +169,14 @@ def go_online(current_user):
 
 @realtime_bp.route('/realtime/presence/offline', methods=['POST'])
 @require_auth
-def go_offline(current_user):
+def go_offline():
     """Mark user as offline and notify friends via Pusher."""
     from datetime import datetime
-    presence_service.set_offline(current_user.id)
+    user = g.current_user
+    presence_service.set_offline(user.id)
 
     from app.models.friend import Friend
-    friendships = Friend.query.filter_by(user_id=current_user.id).all()
+    friendships = Friend.query.filter_by(user_id=user.id).all()
 
     events = []
     for f in friendships:
@@ -180,7 +184,7 @@ def go_offline(current_user):
             'channel': f'private-user-{f.friend_id}',
             'name': 'presence:offline',
             'data': {
-                'userId': current_user.id,
+                'userId': user.id,
                 'lastSeen': datetime.utcnow().isoformat(),
             },
         })
@@ -193,22 +197,23 @@ def go_offline(current_user):
 
 @realtime_bp.route('/realtime/presence/status', methods=['POST'])
 @require_auth
-def update_status(current_user):
+def update_status():
     """Update presence status and notify friends."""
+    user = g.current_user
     data = request.get_json(silent=True) or {}
     status = data.get('status', 'available')
 
-    presence_service.set_status(current_user.id, status)
+    presence_service.set_status(user.id, status)
 
     from app.models.friend import Friend
-    friendships = Friend.query.filter_by(user_id=current_user.id).all()
+    friendships = Friend.query.filter_by(user_id=user.id).all()
 
     events = []
     for f in friendships:
         events.append({
             'channel': f'private-user-{f.friend_id}',
             'name': 'presence:status',
-            'data': {'userId': current_user.id, 'status': status},
+            'data': {'userId': user.id, 'status': status},
         })
 
     for i in range(0, len(events), 10):
@@ -223,15 +228,16 @@ def update_status(current_user):
 
 @realtime_bp.route('/realtime/call/initiate', methods=['POST'])
 @require_auth
-def initiate_call(current_user):
+def initiate_call():
     """Initiate a call and ring participants via Pusher."""
+    user = g.current_user
     data = request.get_json(silent=True) or {}
     call_type = data.get('callType')
     context_type = data.get('contextType')
     context_id = data.get('contextId')
 
     call, error = call_service.initiate_call(
-        current_user.id, call_type, context_type, context_id
+        user.id, call_type, context_type, context_id
     )
 
     if error:
@@ -241,7 +247,7 @@ def initiate_call(current_user):
 
     # Ring each participant on their private user channel
     for participant in call.participants.all():
-        if participant.user_id != current_user.id:
+        if participant.user_id != user.id:
             trigger(
                 f'private-user-{participant.user_id}',
                 'call:ring',
@@ -253,12 +259,13 @@ def initiate_call(current_user):
 
 @realtime_bp.route('/realtime/call/accept', methods=['POST'])
 @require_auth
-def accept_call(current_user):
+def accept_call():
     """Accept a call and notify other participants."""
+    user = g.current_user
     data = request.get_json(silent=True) or {}
     call_id = data.get('callId')
 
-    participant, error = call_service.join_call(call_id, current_user.id)
+    participant, error = call_service.join_call(call_id, user.id)
 
     if error:
         return jsonify({'error': error}), 400
@@ -268,21 +275,21 @@ def accept_call(current_user):
 
     accepted_data = {
         'callId': call_id,
-        'userId': current_user.id,
-        'userName': current_user.name,
+        'userId': user.id,
+        'userName': user.name,
     }
 
     # Notify the call channel
     trigger(f'private-call-{call_id}', 'call:accepted', accepted_data)
 
     # Also notify the initiator directly
-    if call and call.initiator_id != current_user.id:
+    if call and call.initiator_id != user.id:
         trigger(f'private-user-{call.initiator_id}', 'call:accepted', accepted_data)
 
     # For group calls, notify all joined participants about the new joiner
     if call and call.context_type == 'group':
         for p in call.participants.all():
-            if p.status == 'joined' and p.user_id != current_user.id:
+            if p.status == 'joined' and p.user_id != user.id:
                 trigger(f'private-user-{p.user_id}', 'call:participant-joined', accepted_data)
 
     return jsonify({
@@ -294,12 +301,13 @@ def accept_call(current_user):
 
 @realtime_bp.route('/realtime/call/decline', methods=['POST'])
 @require_auth
-def decline_call(current_user):
+def decline_call():
     """Decline a call."""
+    user = g.current_user
     data = request.get_json(silent=True) or {}
     call_id = data.get('callId')
 
-    success, error, call_ended = call_service.decline_call(call_id, current_user.id)
+    success, error, call_ended = call_service.decline_call(call_id, user.id)
 
     if error:
         return jsonify({'error': error}), 400
@@ -309,19 +317,19 @@ def decline_call(current_user):
 
     declined_data = {
         'callId': call_id,
-        'userId': current_user.id,
-        'userName': current_user.name,
+        'userId': user.id,
+        'userName': user.name,
     }
 
     if call_ended:
         trigger(f'private-call-{call_id}', 'call:declined', declined_data)
-        if call and call.initiator_id != current_user.id:
+        if call and call.initiator_id != user.id:
             trigger(f'private-user-{call.initiator_id}', 'call:declined', declined_data)
     else:
-        if call and call.initiator_id != current_user.id:
+        if call and call.initiator_id != user.id:
             trigger(f'private-user-{call.initiator_id}', 'call:participant-declined', declined_data)
         for p in call.participants.all():
-            if p.status == 'joined' and p.user_id != current_user.id:
+            if p.status == 'joined' and p.user_id != user.id:
                 trigger(f'private-user-{p.user_id}', 'call:participant-declined', declined_data)
 
     return jsonify({'success': True, 'callEnded': call_ended})
@@ -329,8 +337,9 @@ def decline_call(current_user):
 
 @realtime_bp.route('/realtime/call/end', methods=['POST'])
 @require_auth
-def end_call(current_user):
+def end_call():
     """End a call."""
+    user = g.current_user
     data = request.get_json(silent=True) or {}
     call_id = data.get('callId')
 
@@ -345,28 +354,28 @@ def end_call(current_user):
     if is_group_call:
         remaining = sum(
             1 for p in call.participants.all()
-            if p.status == 'joined' and p.user_id != current_user.id
+            if p.status == 'joined' and p.user_id != user.id
         )
 
         if remaining > 0:
-            success, error = call_service.leave_call(call_id, current_user.id)
+            success, error = call_service.leave_call(call_id, user.id)
             if error:
                 return jsonify({'error': error}), 400
 
             trigger(f'private-call-{call_id}', 'call:participant-left', {
                 'callId': call_id,
-                'userId': current_user.id,
-                'userName': current_user.name,
+                'userId': user.id,
+                'userName': user.name,
             })
             return jsonify({'success': True, 'action': 'left'})
 
-    success, error = call_service.end_call(call_id, current_user.id)
+    success, error = call_service.end_call(call_id, user.id)
     if error:
         return jsonify({'error': error}), 400
 
     trigger(f'private-call-{call_id}', 'call:ended', {
         'callId': call_id,
-        'endedBy': current_user.id,
+        'endedBy': user.id,
     })
 
     return jsonify({'success': True, 'action': 'ended'})
@@ -374,12 +383,13 @@ def end_call(current_user):
 
 @realtime_bp.route('/realtime/call/cancel-ringing', methods=['POST'])
 @require_auth
-def cancel_ringing(current_user):
+def cancel_ringing():
     """Cancel ringing for unanswered calls."""
+    user = g.current_user
     data = request.get_json(silent=True) or {}
     call_id = data.get('callId')
 
-    success, error = call_service.cancel_ringing(call_id, current_user.id)
+    success, error = call_service.cancel_ringing(call_id, user.id)
 
     if error:
         return jsonify({'error': error}), 400
@@ -390,12 +400,12 @@ def cancel_ringing(current_user):
     if call and call.status == 'missed':
         ended_data = {
             'callId': call_id,
-            'endedBy': current_user.id,
+            'endedBy': user.id,
             'reason': 'timeout',
         }
         trigger(f'private-call-{call_id}', 'call:ended', ended_data)
         for p in call.participants.all():
-            if p.user_id != current_user.id:
+            if p.user_id != user.id:
                 trigger(f'private-user-{p.user_id}', 'call:ended', ended_data)
 
     return jsonify({'success': True})
@@ -403,8 +413,9 @@ def cancel_ringing(current_user):
 
 @realtime_bp.route('/realtime/call/offer', methods=['POST'])
 @require_auth
-def send_offer(current_user):
+def send_offer():
     """Forward WebRTC offer via Pusher."""
+    user = g.current_user
     data = request.get_json(silent=True) or {}
     call_id = data.get('callId')
     target_user_id = data.get('targetUserId')
@@ -412,7 +423,7 @@ def send_offer(current_user):
 
     trigger(f'private-user-{target_user_id}', 'call:offer', {
         'callId': call_id,
-        'fromUserId': current_user.id,
+        'fromUserId': user.id,
         'offer': offer,
     })
 
@@ -421,8 +432,9 @@ def send_offer(current_user):
 
 @realtime_bp.route('/realtime/call/answer', methods=['POST'])
 @require_auth
-def send_answer(current_user):
+def send_answer():
     """Forward WebRTC answer via Pusher."""
+    user = g.current_user
     data = request.get_json(silent=True) or {}
     call_id = data.get('callId')
     target_user_id = data.get('targetUserId')
@@ -430,7 +442,7 @@ def send_answer(current_user):
 
     trigger(f'private-user-{target_user_id}', 'call:answer', {
         'callId': call_id,
-        'fromUserId': current_user.id,
+        'fromUserId': user.id,
         'answer': answer,
     })
 
@@ -439,8 +451,9 @@ def send_answer(current_user):
 
 @realtime_bp.route('/realtime/call/ice-candidate', methods=['POST'])
 @require_auth
-def send_ice_candidate(current_user):
+def send_ice_candidate():
     """Forward ICE candidate via Pusher."""
+    user = g.current_user
     data = request.get_json(silent=True) or {}
     call_id = data.get('callId')
     target_user_id = data.get('targetUserId')
@@ -448,7 +461,7 @@ def send_ice_candidate(current_user):
 
     trigger(f'private-user-{target_user_id}', 'call:ice-candidate', {
         'callId': call_id,
-        'fromUserId': current_user.id,
+        'fromUserId': user.id,
         'candidate': candidate,
     })
 
@@ -457,14 +470,15 @@ def send_ice_candidate(current_user):
 
 @realtime_bp.route('/realtime/call/media-state', methods=['POST'])
 @require_auth
-def update_media_state(current_user):
+def update_media_state():
     """Update and broadcast media state changes."""
+    user = g.current_user
     data = request.get_json(silent=True) or {}
     call_id = data.get('callId')
 
     participant, error = call_service.update_media_state(
         call_id,
-        current_user.id,
+        user.id,
         is_muted=data.get('isMuted'),
         is_video_off=data.get('isVideoOff'),
         is_screen_sharing=data.get('isScreenSharing'),
@@ -475,7 +489,7 @@ def update_media_state(current_user):
 
     trigger(f'private-call-{call_id}', 'call:media-state', {
         'callId': call_id,
-        'userId': current_user.id,
+        'userId': user.id,
         'isMuted': participant.is_muted,
         'isVideoOff': participant.is_video_off,
         'isScreenSharing': participant.is_screen_sharing,

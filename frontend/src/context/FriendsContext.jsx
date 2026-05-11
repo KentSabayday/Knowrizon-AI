@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import websocketService from '../lib/websocket';
+import pusherService from '../lib/websocket';
 import { API_BASE } from '../lib/api';
 
 const FriendsContext = createContext(null);
 
 export function FriendsProvider({ children }) {
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, user } = useAuth();
   const [friends, setFriends] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
@@ -173,9 +173,9 @@ export function FriendsProvider({ children }) {
     }
   };
 
-  // Handle presence updates from WebSocket
+  // Handle presence updates from Pusher (via user's private channel)
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !user?.id) return;
 
     const handleOnline = (data) => {
       setFriends(prev => prev.map(friend => 
@@ -201,16 +201,17 @@ export function FriendsProvider({ children }) {
       ));
     };
 
-    const unsubOnline = websocketService.on('presence:online', handleOnline);
-    const unsubOffline = websocketService.on('presence:offline', handleOffline);
-    const unsubStatus = websocketService.on('presence:status', handleStatus);
+    // Bind to the user's private channel (already subscribed in App.jsx)
+    const unsubOnline = pusherService.on('presence:online', handleOnline);
+    const unsubOffline = pusherService.on('presence:offline', handleOffline);
+    const unsubStatus = pusherService.on('presence:status', handleStatus);
 
     return () => {
       unsubOnline();
       unsubOffline();
       unsubStatus();
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.id]);
 
   // Fetch data on mount
   useEffect(() => {

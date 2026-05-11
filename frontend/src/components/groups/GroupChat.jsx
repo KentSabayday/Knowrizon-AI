@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from '../ui/Avatar';
-import websocketService from '../../lib/websocket';
+import pusherService from '../../lib/websocket';
 import { API_BASE } from '../../lib/api';
 
 export function GroupChat({ groupId }) {
@@ -12,41 +12,29 @@ export function GroupChat({ groupId }) {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Connect to WebSocket and join the group chat room
+  // Subscribe to Pusher group chat channel
   useEffect(() => {
     if (!token || !groupId) return;
 
-    const connectAndJoin = async () => {
-      try {
-        // Ensure WebSocket is connected
-        if (!websocketService.connected) {
-          await websocketService.connect(token);
-        }
-        
-        // Join the group chat room
-        await websocketService.joinChat(groupId, 'group');
-        console.log('Joined group chat room:', groupId);
-      } catch (error) {
-        console.error('Failed to join group chat:', error);
-      }
-    };
+    // Subscribe to the group chat channel
+    pusherService.joinChat(groupId, 'group');
+    console.log('Subscribed to group chat channel:', groupId);
 
-    connectAndJoin();
-
-    // Cleanup: leave the room when component unmounts or groupId changes
+    // Cleanup: unsubscribe when component unmounts or groupId changes
     return () => {
-      if (websocketService.connected) {
-        websocketService.leaveChat(groupId, 'group').catch(err => {
-          console.error('Failed to leave group chat:', err);
-        });
-        console.log('Left group chat room:', groupId);
-      }
+      pusherService.leaveChat(groupId, 'group');
+      console.log('Unsubscribed from group chat channel:', groupId);
     };
   }, [token, groupId]);
 
-  // Listen for incoming messages
+  // Listen for incoming messages on the group channel
   useEffect(() => {
     if (!groupId) return;
+
+    const channelName = `private-group-${groupId}`;
+    const channel = pusherService.subscribeChat(groupId, 'group');
+
+    if (!channel) return;
 
     const handleNewMessage = (message) => {
       console.log('Received group message:', message);
@@ -62,10 +50,10 @@ export function GroupChat({ groupId }) {
       }
     };
 
-    const unsubscribe = websocketService.on('chat:message', handleNewMessage);
+    channel.bind('chat:message', handleNewMessage);
 
     return () => {
-      unsubscribe();
+      channel.unbind('chat:message', handleNewMessage);
     };
   }, [groupId, user?.id]);
 
@@ -103,30 +91,15 @@ export function GroupChat({ groupId }) {
     setSending(true);
     
     try {
-      // Try to send via WebSocket first for real-time delivery
-      if (websocketService.connected) {
-        const result = await websocketService.sendMessage(groupId, content, 'group');
-        if (result?.message) {
-          // Add the message to our local state
-          setMessages(prev => {
-            // Check if message already exists
-            if (prev.some(m => m.id === result.message.id)) {
-              return prev;
-            }
-            return [...prev, result.message];
-          });
-        }
-      } else {
-        // Fallback to HTTP if WebSocket not connected
-        const response = await fetch(`${API_BASE}/groups/${groupId}/messages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ content })
+      // Send via Pusher service (HTTP POST → Pusher trigger)
+      const result = await pusherService.sendMessage(groupId, content, 'group');
+      if (result?.message) {
+        setMessages(prev => {
+          if (prev.some(m => m.id === result.message.id)) {
+            return prev;
+          }
+          return [...prev, result.message];
         });
-        if (response.ok) {
-          const data = await response.json();
-          setMessages(prev => [...prev, data]);
-        }
       }
     } catch (error) {
       console.error('Failed to send message:', error);

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
-import websocketService from '../lib/websocket';
+import pusherService from '../lib/websocket';
 import { API_BASE } from '../lib/api';
 
 const ChatContext = createContext(null);
@@ -52,22 +52,11 @@ export function ChatProvider({ children }) {
     return null;
   };
 
-  const ensureWebSocketConnected = async () => {
-    if (!websocketService.connected) {
-      console.log('WebSocket not connected, connecting...');
-      await websocketService.connect(token);
-    }
-    return websocketService.connected;
-  };
-
   const openChat = async (chatId, chatType = 'direct') => {
     if (!token) return;
     
     setIsLoading(true);
     try {
-      // Ensure websocket is connected first
-      await ensureWebSocketConnected();
-      
       // Fetch messages
       const response = await fetch(`${API_BASE}/chat/${chatId}/messages`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -78,13 +67,8 @@ export function ChatProvider({ children }) {
         setMessages(data.messages || []);
         setCurrentChat({ id: chatId, type: chatType });
         
-        // Join WebSocket room
-        try {
-          const joinResult = await websocketService.joinChat(chatId, chatType);
-          console.log('Joined chat room:', joinResult);
-        } catch (joinErr) {
-          console.error('Failed to join chat room:', joinErr);
-        }
+        // Subscribe to the Pusher chat channel
+        pusherService.joinChat(chatId, chatType);
       }
     } catch (err) {
       console.error('Failed to open chat:', err);
@@ -96,13 +80,7 @@ export function ChatProvider({ children }) {
   const closeChat = async () => {
     const chat = currentChatRef.current;
     if (chat) {
-      try {
-        if (websocketService.connected) {
-          await websocketService.leaveChat(chat.id, chat.type);
-        }
-      } catch (err) {
-        // Ignore errors on close
-      }
+      pusherService.leaveChat(chat.id, chat.type);
       setCurrentChat(null);
       setMessages([]);
       setTypingUsers({});
@@ -122,27 +100,12 @@ export function ChatProvider({ children }) {
       return { success: false, error: 'Empty message' };
     }
     
-    // Ensure websocket is connected
     try {
-      await ensureWebSocketConnected();
-      
-      // Re-join room if needed
-      if (websocketService.connected) {
-        await websocketService.joinChat(chat.id, chat.type);
-      }
-    } catch (err) {
-      console.error('Failed to ensure connection:', err);
-      return { success: false, error: 'Not connected' };
-    }
-    
-    try {
-      const result = await websocketService.sendMessage(
+      const result = await pusherService.sendMessage(
         chat.id, 
         content.trim(), 
         chat.type
       );
-      
-      console.log('Send message result:', result);
       
       if (result?.success && result?.message) {
         setMessages(prev => [...prev, result.message]);
@@ -157,17 +120,17 @@ export function ChatProvider({ children }) {
 
   const sendTypingIndicator = (isTyping) => {
     const chat = currentChatRef.current;
-    if (chat && websocketService.connected) {
-      websocketService.sendTyping(chat.id, isTyping, chat.type).catch(() => {});
+    if (chat && pusherService.connected) {
+      pusherService.sendTyping(chat.id, isTyping, chat.type).catch(() => {});
     }
   };
 
   const markAsRead = async (messageIds = null) => {
     const chat = currentChatRef.current;
-    if (!chat || !websocketService.connected) return;
+    if (!chat || !pusherService.connected) return;
     
     try {
-      await websocketService.markAsRead(chat.id, messageIds, chat.type);
+      await pusherService.markAsRead(chat.id, messageIds, chat.type);
     } catch (err) {
       // Ignore errors
     }
@@ -194,14 +157,23 @@ export function ChatProvider({ children }) {
     return [];
   };
 
-  // Handle WebSocket events
+  // Handle Pusher events for the current chat
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !currentChat) return;
+
+    const channelName = `private-${currentChat.type}-${currentChat.id}`;
+    const channel = pusherService.subscribeChat(currentChat.id, currentChat.type);
+
+    if (!channel) return;
 
     const handleMessage = (message) => {
       const chat = currentChatRef.current;
       if (chat && message.chatId === chat.id) {
-        setMessages(prev => [...prev, message]);
+        // Avoid duplicating our own messages (already added optimistically in sendMessage)
+        setMessages(prev => {
+          if (prev.some(m => m.id === message.id)) return prev;
+          return [...prev, message];
+        });
       }
       // Update chat list with new message
       setDirectChats(prev => prev.map(c => 
@@ -212,50 +184,44 @@ export function ChatProvider({ children }) {
     };
 
     const handleTyping = (data) => {
-      const chat = currentChatRef.current;
-      if (chat && data.chatId === chat.id) {
-        setTypingUsers(prev => ({
-          ...prev,
-          [data.userId]: data.isTyping ? data.userName : null
-        }));
-        
-        // Clear typing indicator after 3 seconds
-        if (data.isTyping) {
-          setTimeout(() => {
-            setTypingUsers(prev => ({
-              ...prev,
-              [data.userId]: null
-            }));
-          }, 3000);
-        }
+      setTypingUsers(prev => ({
+        ...prev,
+        [data.userId]: data.isTyping ? data.userName : null
+      }));
+      
+      // Clear typing indicator after 3 seconds
+      if (data.isTyping) {
+        setTimeout(() => {
+          setTypingUsers(prev => ({
+            ...prev,
+            [data.userId]: null
+          }));
+        }, 3000);
       }
     };
 
     const handleRead = (data) => {
-      const chat = currentChatRef.current;
-      if (chat && data.chatId === chat.id) {
-        setMessages(prev => prev.map(msg => {
-          if (data.messageIds?.includes(msg.id) || !data.messageIds) {
-            const readBy = msg.readBy || [];
-            if (!readBy.includes(data.userId)) {
-              return { ...msg, readBy: [...readBy, data.userId] };
-            }
+      setMessages(prev => prev.map(msg => {
+        if (data.messageIds?.includes(msg.id) || !data.messageIds) {
+          const readBy = msg.readBy || [];
+          if (!readBy.includes(data.userId)) {
+            return { ...msg, readBy: [...readBy, data.userId] };
           }
-          return msg;
-        }));
-      }
+        }
+        return msg;
+      }));
     };
 
-    const unsubMessage = websocketService.on('chat:message', handleMessage);
-    const unsubTyping = websocketService.on('chat:typing', handleTyping);
-    const unsubRead = websocketService.on('chat:read', handleRead);
+    channel.bind('chat:message', handleMessage);
+    channel.bind('chat:typing', handleTyping);
+    channel.bind('chat:read', handleRead);
 
     return () => {
-      unsubMessage();
-      unsubTyping();
-      unsubRead();
+      channel.unbind('chat:message', handleMessage);
+      channel.unbind('chat:typing', handleTyping);
+      channel.unbind('chat:read', handleRead);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, currentChat?.id, currentChat?.type]);
 
   // Fetch chats on mount
   useEffect(() => {

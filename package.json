@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Knowrizon AI Tutor - Personal AI learning assistant",
   "scripts": {
-    "postinstall": "cd frontend && npm install && npm run build"
+    "build": "cd frontend && npm install && npm run build",
+    "vercel-build": "cd frontend && npm install && npm run build"
   },
   "engines": {
     "node": "20.x"

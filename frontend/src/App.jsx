@@ -3,27 +3,32 @@ import { LandingPage } from './components/pages'
 import { AuthProvider, useAuth, FriendsProvider, ChatProvider, CallProvider } from './context'
 import { IncomingCall } from './components/calls'
 import { CallBubble } from './components/calls'
-import websocketService from './lib/websocket'
+import pusherService from './lib/websocket'
 import { useEffect } from 'react'
 import './App.css'
 
 function AppContent() {
-  const { isAuthenticated, isLoading, token } = useAuth();
+  const { isAuthenticated, isLoading, token, user } = useAuth();
 
-  // Connect WebSocket when authenticated
+  // Connect Pusher when authenticated
   useEffect(() => {
     if (isAuthenticated && token) {
-      websocketService.connect(token).catch(err => {
-        console.error('WebSocket connection failed:', err);
+      pusherService.connect(token).then(() => {
+        // Subscribe to the user's private channel for direct events
+        if (user?.id) {
+          pusherService.subscribeUser(user.id);
+        }
+      }).catch(err => {
+        console.error('Pusher connection failed:', err);
       });
     }
-    
+
     return () => {
       if (!isAuthenticated) {
-        websocketService.disconnect();
+        pusherService.disconnect();
       }
     };
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, user?.id]);
 
   if (isLoading) {
     return (

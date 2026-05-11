@@ -1,226 +1,357 @@
 /**
- * WebSocket service for real-time communication.
+ * Pusher Channels client for Knowrizon real-time events.
+ *
+ * Replaces Socket.IO with Pusher for fully stateless Vercel deployment.
+ * - Subscriptions use Pusher channels (private-user-{id}, private-{type}-{chatId})
+ * - Outbound actions use HTTP POST to /api/realtime/* endpoints
  */
-import { io } from 'socket.io-client';
-import { getSocketIOUrl } from './api';
+import Pusher from 'pusher-js';
+import { API_BASE } from './api';
 
-// Use dynamic URL based on environment
-const getSocketUrl = () => {
-  // In production, use same origin
-  // In development, Vite proxy handles /socket.io
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
+// Read Pusher public config from Vite env or fallback to window.__ENV__
+const PUSHER_KEY =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_PUSHER_KEY) || '';
+const PUSHER_CLUSTER =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_PUSHER_CLUSTER) || 'ap1';
+
+let pusherInstance = null;
+let currentToken = null;
+let subscribedChannels = new Map();
+
+/**
+ * Initialize or return the Pusher singleton.
+ */
+function getPusher(token) {
+  if (pusherInstance && currentToken === token) {
+    return pusherInstance;
   }
-  return 'http://localhost:5000';
-};
 
-class WebSocketService {
+  // Disconnect old instance if token changed
+  if (pusherInstance) {
+    pusherInstance.disconnect();
+    subscribedChannels.clear();
+  }
+
+  currentToken = token;
+
+  pusherInstance = new Pusher(PUSHER_KEY, {
+    cluster: PUSHER_CLUSTER,
+    authEndpoint: `${API_BASE}/pusher/auth`,
+    auth: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
+
+  return pusherInstance;
+}
+
+/**
+ * Subscribe to a channel if not already subscribed.
+ */
+function subscribe(channelName) {
+  if (!pusherInstance) return null;
+
+  if (subscribedChannels.has(channelName)) {
+    return subscribedChannels.get(channelName);
+  }
+
+  const channel = pusherInstance.subscribe(channelName);
+  subscribedChannels.set(channelName, channel);
+  return channel;
+}
+
+/**
+ * Unsubscribe from a channel.
+ */
+function unsubscribe(channelName) {
+  if (!pusherInstance) return;
+
+  if (subscribedChannels.has(channelName)) {
+    pusherInstance.unsubscribe(channelName);
+    subscribedChannels.delete(channelName);
+  }
+}
+
+/**
+ * Helper: POST JSON to an API endpoint with auth.
+ */
+async function postRealtime(path, body) {
+  const response = await fetch(`${API_BASE}/realtime${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${currentToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || `Request failed: ${response.status}`);
+  }
+
+  return data;
+}
+
+// ─────────────────────────────────────────────
+// Public API — drop-in replacement for websocketService
+// ─────────────────────────────────────────────
+
+class PusherService {
   constructor() {
-    this.socket = null;
-    this.listeners = new Map();
     this.connected = false;
     this.connecting = false;
-    this.connectionPromise = null;
   }
 
-  connect(token) {
-    // If already connected, return immediately
-    if (this.socket?.connected) {
-      this.connected = true;
-      return Promise.resolve();
-    }
-
-    // If already connecting, return the existing promise
-    if (this.connecting && this.connectionPromise) {
-      return this.connectionPromise;
-    }
+  /**
+   * Connect to Pusher and subscribe to the user's private channel.
+   */
+  async connect(token) {
+    if (this.connected && currentToken === token) return;
 
     this.connecting = true;
-    this.connectionPromise = new Promise((resolve, reject) => {
-      // Disconnect existing socket if any
-      if (this.socket) {
-        this.socket.disconnect();
-      }
 
-      this.socket = io(getSocketUrl(), {
-        query: { token },
-        transports: ['websocket', 'polling'],
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        timeout: 10000,
-      });
+    try {
+      const pusher = getPusher(token);
 
-      const connectTimeout = setTimeout(() => {
-        this.connecting = false;
-        reject(new Error('Connection timeout'));
-      }, 15000);
-
-      this.socket.on('connect', () => {
-        clearTimeout(connectTimeout);
-        this.connected = true;
-        this.connecting = false;
-        console.log('WebSocket connected');
-        resolve();
-      });
-
-      this.socket.on('disconnect', (reason) => {
-        this.connected = false;
-        console.log('WebSocket disconnected:', reason);
-      });
-
-      this.socket.on('connect_error', (error) => {
-        clearTimeout(connectTimeout);
-        this.connected = false;
-        this.connecting = false;
-        console.error('WebSocket connection error:', error);
-        reject(error);
-      });
-
-      this.socket.on('reconnect', () => {
-        this.connected = true;
-        console.log('WebSocket reconnected');
-      });
-
-      // Re-register all listeners
-      this.listeners.forEach((callbacks, event) => {
-        callbacks.forEach(callback => {
-          this.socket.on(event, callback);
-        });
-      });
-    });
-
-    return this.connectionPromise;
-  }
-
-  disconnect() {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-      this.connected = false;
-      this.connecting = false;
-      this.connectionPromise = null;
-    }
-  }
-
-  on(event, callback) {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set());
-    }
-    this.listeners.get(event).add(callback);
-
-    if (this.socket) {
-      this.socket.on(event, callback);
-    }
-
-    // Return unsubscribe function
-    return () => this.off(event, callback);
-  }
-
-  off(event, callback) {
-    if (this.listeners.has(event)) {
-      this.listeners.get(event).delete(callback);
-    }
-    if (this.socket) {
-      this.socket.off(event, callback);
-    }
-  }
-
-  emit(event, data) {
-    return new Promise((resolve, reject) => {
-      if (!this.socket?.connected) {
-        console.error('Socket not connected when trying to emit:', event);
-        reject(new Error('Socket not connected'));
-        return;
-      }
-
-      console.log('Emitting event:', event, data);
-      
-      // Set a timeout for the response
-      const timeout = setTimeout(() => {
-        console.error('Socket emit timeout for event:', event);
-        reject(new Error('Socket response timeout'));
-      }, 10000);
-
-      this.socket.emit(event, data, (response) => {
-        clearTimeout(timeout);
-        console.log('Socket response for', event, ':', response);
-        if (response?.error) {
-          reject(new Error(response.error));
-        } else {
-          resolve(response);
+      // Wait for connection
+      await new Promise((resolve, reject) => {
+        if (pusher.connection.state === 'connected') {
+          resolve();
+          return;
         }
+
+        const onConnected = () => {
+          pusher.connection.unbind('connected', onConnected);
+          pusher.connection.unbind('error', onError);
+          resolve();
+        };
+
+        const onError = (err) => {
+          pusher.connection.unbind('connected', onConnected);
+          pusher.connection.unbind('error', onError);
+          reject(err);
+        };
+
+        pusher.connection.bind('connected', onConnected);
+        pusher.connection.bind('error', onError);
+
+        // Timeout after 10 seconds
+        setTimeout(() => {
+          pusher.connection.unbind('connected', onConnected);
+          pusher.connection.unbind('error', onError);
+          // Resolve anyway — Pusher will reconnect automatically
+          resolve();
+        }, 10000);
       });
-    });
+
+      this.connected = true;
+      this.connecting = false;
+
+      // Notify server we're online
+      postRealtime('/presence/online', {}).catch(() => {});
+    } catch (err) {
+      this.connecting = false;
+      console.error('Pusher connection error:', err);
+      // Don't throw — Pusher will auto-reconnect
+      this.connected = true;
+    }
   }
 
-  // Chat methods
+  /**
+   * Disconnect from Pusher.
+   */
+  disconnect() {
+    if (pusherInstance) {
+      // Notify server we're offline
+      if (currentToken) {
+        postRealtime('/presence/offline', {}).catch(() => {});
+      }
+
+      pusherInstance.disconnect();
+      pusherInstance = null;
+      subscribedChannels.clear();
+      currentToken = null;
+    }
+    this.connected = false;
+    this.connecting = false;
+  }
+
+  /**
+   * Subscribe to a channel and bind an event.
+   * Returns an unsubscribe function.
+   */
+  on(eventName, callback, channelName) {
+    if (!channelName) {
+      // If no channel specified, this is a global listener stored locally
+      // These get bound when the user subscribes to their personal channel
+      if (!this._globalListeners) this._globalListeners = new Map();
+      if (!this._globalListeners.has(eventName)) {
+        this._globalListeners.set(eventName, new Set());
+      }
+      this._globalListeners.get(eventName).add(callback);
+
+      return () => {
+        if (this._globalListeners?.has(eventName)) {
+          this._globalListeners.get(eventName).delete(callback);
+        }
+      };
+    }
+
+    const channel = subscribe(channelName);
+    if (channel) {
+      channel.bind(eventName, callback);
+    }
+
+    return () => {
+      if (channel) {
+        channel.unbind(eventName, callback);
+      }
+    };
+  }
+
+  /**
+   * Subscribe to the user's personal channel for direct events
+   * (call:ring, presence, etc.)
+   */
+  subscribeUser(userId) {
+    const channelName = `private-user-${userId}`;
+    const channel = subscribe(channelName);
+
+    // Bind any global listeners that were registered before subscription
+    if (this._globalListeners && channel) {
+      for (const [event, callbacks] of this._globalListeners) {
+        for (const cb of callbacks) {
+          channel.bind(event, cb);
+        }
+      }
+    }
+
+    return channel;
+  }
+
+  /**
+   * Subscribe to a chat channel.
+   */
+  subscribeChat(chatId, chatType = 'direct') {
+    return subscribe(`private-${chatType}-${chatId}`);
+  }
+
+  /**
+   * Unsubscribe from a chat channel.
+   */
+  unsubscribeChat(chatId, chatType = 'direct') {
+    unsubscribe(`private-${chatType}-${chatId}`);
+  }
+
+  /**
+   * Subscribe to a call channel.
+   */
+  subscribeCall(callId) {
+    return subscribe(`private-call-${callId}`);
+  }
+
+  /**
+   * Unsubscribe from a call channel.
+   */
+  unsubscribeCall(callId) {
+    unsubscribe(`private-call-${callId}`);
+  }
+
+  // ─────────────────────────────────────
+  // Chat methods (POST to server → Pusher trigger)
+  // ─────────────────────────────────────
+
   async joinChat(chatId, chatType = 'direct') {
-    return this.emit('chat:join', { chatId, chatType });
+    this.subscribeChat(chatId, chatType);
+    return { success: true };
   }
 
   async leaveChat(chatId, chatType = 'direct') {
-    if (!this.socket?.connected) return { success: true };
-    return this.emit('chat:leave', { chatId, chatType });
+    this.unsubscribeChat(chatId, chatType);
+    return { success: true };
   }
 
   async sendMessage(chatId, content, chatType = 'direct') {
-    return this.emit('chat:message', { chatId, content, chatType });
+    return postRealtime('/chat/message', { chatId, content, chatType });
   }
 
   async sendTyping(chatId, isTyping, chatType = 'direct') {
-    if (!this.socket?.connected) return;
-    return this.emit('chat:typing', { chatId, isTyping, chatType });
+    return postRealtime('/chat/typing', { chatId, isTyping, chatType });
   }
 
   async markAsRead(chatId, messageIds, chatType = 'direct') {
-    if (!this.socket?.connected) return;
-    return this.emit('chat:read', { chatId, messageIds, chatType });
+    return postRealtime('/chat/read', { chatId, messageIds, chatType });
   }
 
-  // Call methods
-  initiateCall(callType, contextType, contextId) {
-    return this.emit('call:initiate', { callType, contextType, contextId });
+  // ─────────────────────────────────────
+  // Call methods (POST to server → Pusher trigger)
+  // ─────────────────────────────────────
+
+  async initiateCall(callType, contextType, contextId) {
+    const result = await postRealtime('/call/initiate', {
+      callType,
+      contextType,
+      contextId,
+    });
+
+    // Subscribe to the call channel for signaling events
+    if (result?.call?.id) {
+      this.subscribeCall(result.call.id);
+    }
+
+    return result;
   }
 
-  acceptCall(callId) {
-    return this.emit('call:accept', { callId });
+  async acceptCall(callId) {
+    this.subscribeCall(callId);
+    return postRealtime('/call/accept', { callId });
   }
 
-  declineCall(callId) {
-    return this.emit('call:decline', { callId });
+  async declineCall(callId) {
+    const result = await postRealtime('/call/decline', { callId });
+    this.unsubscribeCall(callId);
+    return result;
   }
 
-  endCall(callId) {
-    return this.emit('call:end', { callId });
+  async endCall(callId) {
+    const result = await postRealtime('/call/end', { callId });
+    this.unsubscribeCall(callId);
+    return result;
   }
 
-  sendOffer(callId, targetUserId, offer) {
-    return this.emit('call:offer', { callId, targetUserId, offer });
+  async cancelRinging(callId) {
+    return postRealtime('/call/cancel-ringing', { callId });
   }
 
-  sendAnswer(callId, targetUserId, answer) {
-    return this.emit('call:answer', { callId, targetUserId, answer });
+  async sendOffer(callId, targetUserId, offer) {
+    return postRealtime('/call/offer', { callId, targetUserId, offer });
   }
 
-  sendIceCandidate(callId, targetUserId, candidate) {
-    return this.emit('call:ice-candidate', { callId, targetUserId, candidate });
+  async sendAnswer(callId, targetUserId, answer) {
+    return postRealtime('/call/answer', { callId, targetUserId, answer });
   }
 
-  cancelRinging(callId) {
-    return this.emit('call:cancel-ringing', { callId });
+  async sendIceCandidate(callId, targetUserId, candidate) {
+    return postRealtime('/call/ice-candidate', { callId, targetUserId, candidate });
   }
 
-  updateMediaState(callId, state) {
-    return this.emit('call:media-state', { callId, ...state });
+  async updateMediaState(callId, state) {
+    return postRealtime('/call/media-state', { callId, ...state });
   }
 
+  // ─────────────────────────────────────
   // Presence methods
-  updateStatus(status) {
-    return this.emit('presence:status', { status });
+  // ─────────────────────────────────────
+
+  async updateStatus(status) {
+    return postRealtime('/presence/status', { status });
   }
 }
 
 // Singleton instance
-export const websocketService = new WebSocketService();
-export default websocketService;
+export const pusherService = new PusherService();
+export default pusherService;
