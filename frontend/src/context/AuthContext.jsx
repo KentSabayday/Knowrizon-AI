@@ -13,17 +13,17 @@ export function AuthProvider({ children }) {
   // Check for existing session on mount and validate token
   useEffect(() => {
     const validateSession = async () => {
-      const storedToken = localStorage.getItem('mentormind_token');
-      const storedUser = localStorage.getItem('mentormind_user');
-      const storedIsAnonymous = localStorage.getItem('mentormind_anonymous');
-      
+      const storedToken = localStorage.getItem('knowrizon_token');
+      const storedUser = localStorage.getItem('knowrizon_user');
+      const storedIsAnonymous = localStorage.getItem('knowrizon_anonymous');
+
       if (storedToken && storedUser) {
         // Validate token by making a test API call
         try {
           const response = await fetch(`${API_BASE}/auth/validate`, {
             headers: { 'Authorization': `Bearer ${storedToken}` }
           });
-          
+
           if (response.ok) {
             // Token is valid
             setToken(storedToken);
@@ -32,38 +32,38 @@ export function AuthProvider({ children }) {
           } else {
             // Token is invalid, clear session
             console.log('Session expired or invalid, clearing...');
-            localStorage.removeItem('mentormind_token');
-            localStorage.removeItem('mentormind_user');
-            localStorage.removeItem('mentormind_anonymous');
+            localStorage.removeItem('knowrizon_token');
+            localStorage.removeItem('knowrizon_user');
+            localStorage.removeItem('knowrizon_anonymous');
           }
         } catch (err) {
           // Network error or server down, try to use cached session
           console.warn('Could not validate session:', err);
           // Clear session to be safe
-          localStorage.removeItem('mentormind_token');
-          localStorage.removeItem('mentormind_user');
-          localStorage.removeItem('mentormind_anonymous');
+          localStorage.removeItem('knowrizon_token');
+          localStorage.removeItem('knowrizon_user');
+          localStorage.removeItem('knowrizon_anonymous');
         }
       }
       setIsLoading(false);
     };
-    
+
     validateSession();
   }, []);
 
   const saveSession = (userData, sessionToken, anonymous = false) => {
-    localStorage.setItem('mentormind_token', sessionToken);
-    localStorage.setItem('mentormind_user', JSON.stringify(userData));
-    localStorage.setItem('mentormind_anonymous', String(anonymous));
+    localStorage.setItem('knowrizon_token', sessionToken);
+    localStorage.setItem('knowrizon_user', JSON.stringify(userData));
+    localStorage.setItem('knowrizon_anonymous', String(anonymous));
     setToken(sessionToken);
     setUser(userData);
     setIsAnonymous(anonymous);
   };
 
   const clearSession = () => {
-    localStorage.removeItem('mentormind_token');
-    localStorage.removeItem('mentormind_user');
-    localStorage.removeItem('mentormind_anonymous');
+    localStorage.removeItem('knowrizon_token');
+    localStorage.removeItem('knowrizon_user');
+    localStorage.removeItem('knowrizon_anonymous');
     setToken(null);
     setUser(null);
     setIsAnonymous(false);
@@ -79,11 +79,11 @@ export function AuthProvider({ children }) {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Registration failed');
       }
-      
+
       saveSession(data.user, data.token, false);
       return { success: true };
     } catch (err) {
@@ -100,13 +100,13 @@ export function AuthProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Login failed');
       }
-      
+
       saveSession(data.user, data.token, false);
       return { success: true };
     } catch (err) {
@@ -122,13 +122,13 @@ export function AuthProvider({ children }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create anonymous session');
       }
-      
+
       saveSession(data.user, data.sessionId, true);
       return { success: true };
     } catch (err) {
@@ -142,7 +142,7 @@ export function AuthProvider({ children }) {
       try {
         await fetch(`${API_BASE}/auth/logout`, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           }

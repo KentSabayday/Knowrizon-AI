@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MentorMind Build Runner
+Knowrizon Build Runner
 
 Concurrently launches the Vite dev server and Flask server for development.
 
@@ -76,7 +76,7 @@ def cleanup():
 
 def dev():
     """Start both frontend and backend development servers concurrently."""
-    print("[Mix] Starting MentorMind development servers...")
+    print("[Mix] Starting Knowrizon development servers...")
     print("[Mix] Frontend: http://localhost:5173")
     print("[Mix] Backend:  http://localhost:5000")
     print("[Mix] Press Ctrl+C to stop\n")

@@ -1,5 +1,5 @@
 /**
- * Feature: mentormind-ai-tutor, Property 4: Theme Toggle Round-Trip
+ * Feature: knowrizon-ai-tutor, Property 4: Theme Toggle Round-Trip
  * Validates: Requirements 3.5
  * 
  * For any initial theme state, toggling the theme twice should return 
@@ -25,31 +25,31 @@ describe('Property 4: Theme Toggle Round-Trip', () => {
         (initialTheme) => {
           // Setup: Set initial theme in localStorage
           localStorage.setItem(THEME_KEY, initialTheme)
-          
+
           // Render the hook with ThemeProvider
           const wrapper = ({ children }) => <ThemeProvider>{children}</ThemeProvider>
           const { result } = renderHook(() => useTheme(), { wrapper })
-          
+
           // Verify initial state
           expect(result.current.theme).toBe(initialTheme)
-          
+
           // Toggle once
           act(() => {
             result.current.toggleTheme()
           })
-          
+
           // Should be opposite
           const afterFirstToggle = result.current.theme
           expect(afterFirstToggle).toBe(initialTheme === 'light' ? 'dark' : 'light')
-          
+
           // Toggle again
           act(() => {
             result.current.toggleTheme()
           })
-          
+
           // Should be back to original
           expect(result.current.theme).toBe(initialTheme)
-          
+
           // Cleanup for next iteration
           localStorage.clear()
           document.documentElement.classList.remove('dark')

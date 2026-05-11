@@ -1,4 +1,4 @@
-"""Demo seed data for MentorMind AI Tutor.
+"""Demo seed data for Knowrizon AI Tutor.
 
 This module provides example user accounts, sample lesson content, and quiz examples
 for demonstration purposes.
@@ -21,7 +21,7 @@ from app.services.content_service import content_service
 # Demo user accounts
 DEMO_USERS = [
     {
-        "email": "demo@mentormind.ai",
+        "email": "demo@knowrizon.ai",
         "password": "demo123",
         "name": "Demo User"
     },
@@ -306,7 +306,7 @@ class SeedDataService:
         created_content = []
         
         # Use demo user for content
-        demo_user_id = self._demo_user_ids.get("demo@mentormind.ai")
+        demo_user_id = self._demo_user_ids.get("demo@knowrizon.ai")
         if not demo_user_id:
             return [{"status": "error", "error": "Demo user not found"}]
         
@@ -350,7 +350,7 @@ class SeedDataService:
         created_quizzes = []
         
         # Use demo user for quizzes
-        demo_user_id = self._demo_user_ids.get("demo@mentormind.ai")
+        demo_user_id = self._demo_user_ids.get("demo@knowrizon.ai")
         if not demo_user_id:
             return [{"status": "error", "error": "Demo user not found"}]
         

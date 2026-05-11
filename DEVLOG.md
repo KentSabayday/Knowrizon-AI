@@ -1,6 +1,6 @@
-# MentorMind Development Log
+# Knowrizon Development Log
 
-> Development timeline, decisions, challenges, and time spent for the Kiro Hackathon
+> Development timeline, decisions, challenges, and time spent for the Knowrizon project
 
 ---
 
@@ -149,7 +149,7 @@
 
 #### Challenges
 - WebRTC NAT traversal requires STUN/TURN server configuration
-- Balancing feature scope with hackathon timeline
+- Balancing feature scope with project timeline
 
 ---
 
@@ -166,7 +166,7 @@
 
 ---
 
-## Kiro Features Used
+## Development Features Used
 
 - **Specs**: Used spec-driven development for all major features
 - **Steering**: Architecture documentation guides implementation

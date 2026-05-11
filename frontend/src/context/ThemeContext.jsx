@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 
 const ThemeContext = createContext(undefined)
 
-const THEME_KEY = 'mentormind-theme'
+const THEME_KEY = 'knowrizon-theme'
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {

@@ -1,5 +1,5 @@
 """
-Models package for MentorMind.
+Models package for Knowrizon.
 
 Exports all SQLAlchemy ORM models and utility functions.
 """

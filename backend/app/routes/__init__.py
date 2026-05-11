@@ -46,4 +46,4 @@ api_bp.register_blueprint(calls_bp, url_prefix='/calls')
 @api_bp.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint."""
-    return {'status': 'healthy', 'message': 'MentorMind API is running'}
+    return {'status': 'healthy', 'message': 'Knowrizon API is running'}

@@ -43,7 +43,7 @@ export function SettingsView() {
         <Card>
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
-            <CardDescription>Customize how MentorMind looks</CardDescription>
+            <CardDescription>Customize how Knowrizon looks</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
@@ -94,7 +94,7 @@ export function SettingsView() {
                   <span className="font-medium">Anonymous Session</span>
                 </div>
                 <p className="text-sm text-yellow-600 dark:text-yellow-300">
-                  You're using MentorMind anonymously. Your progress won't be saved after you leave.
+                  You're using Knowrizon anonymously. Your progress won't be saved after you leave.
                   Create an account to save your learning history.
                 </p>
               </div>
@@ -153,20 +153,20 @@ export function SettingsView() {
         {/* About Section */}
         <Card>
           <CardHeader>
-            <CardTitle>About MentorMind</CardTitle>
+            <CardTitle>About Knowrizon</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4 mb-4">
-              <img src="/logo.svg" alt="MentorMind" className="w-12 h-12" />
+              <img src="/logo.svg" alt="Knowrizon" className="w-12 h-12" />
               <div>
-                <h3 className="font-bold text-gray-900 dark:text-white">MentorMind</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white">Knowrizon</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Your Personal AI Tutor — Learn Smarter
                 </p>
               </div>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              MentorMind uses AI-powered agents to help you learn more effectively.
+              Knowrizon uses AI-powered agents to help you learn more effectively.
               Chat with your tutor, upload study materials, take quizzes, and track your progress.
             </p>
           </CardContent>

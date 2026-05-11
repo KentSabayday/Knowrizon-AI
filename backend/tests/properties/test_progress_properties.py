@@ -1,6 +1,6 @@
 """Property-based tests for progress tracking functionality.
 
-Feature: mentormind-ai-tutor
+Feature: knowrizon-ai-tutor
 """
 import pytest
 from hypothesis import given, strategies as st, settings, assume

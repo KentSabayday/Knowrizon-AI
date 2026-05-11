@@ -1,7 +1,7 @@
 {
-  "name": "mentormind",
+  "name": "knowrizon",
   "version": "1.0.0",
-  "description": "MentorMind AI Tutor - Personal AI learning assistant",
+  "description": "Knowrizon AI Tutor - Personal AI learning assistant",
   "scripts": {
     "postinstall": "cd frontend && npm install && npm run build"
   },
@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/mentormind.git"
+    "url": "https://github.com/yourusername/knowrizon.git"
   },
   "keywords": [
     "ai",
@@ -18,6 +18,6 @@
     "tutor",
     "learning"
   ],
-  "author": "MentorMind Team",
+  "author": "Knowrizon Team",
   "license": "MIT"
 }

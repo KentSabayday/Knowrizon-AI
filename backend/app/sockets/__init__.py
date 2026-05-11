@@ -20,27 +20,9 @@ socketio = SocketIO()
 
 def init_socketio(app):
     """Initialize SocketIO with the Flask app."""
-    import os
-    
-    # Build allowed origins list
-    allowed_origins = [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5000",
-    ]
-    
-    # Add Heroku app URL if available
-    heroku_app_name = os.environ.get('HEROKU_APP_NAME')
-    if heroku_app_name:
-        allowed_origins.append(f"https://{heroku_app_name}.herokuapp.com")
-    
-    # In production, allow all origins from herokuapp.com
-    if os.environ.get('FLASK_ENV') == 'production':
-        allowed_origins = "*"  # Allow all origins in production for simplicity
-    
     socketio.init_app(
         app,
-        cors_allowed_origins=allowed_origins,
+        cors_allowed_origins="*",
         async_mode='eventlet',
         logger=True,
         engineio_logger=True

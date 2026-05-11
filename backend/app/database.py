@@ -1,5 +1,5 @@
 """
-Database configuration module for MentorMind.
+Database configuration module for Knowrizon.
 
 Configures SQLAlchemy with Flask, supporting both SQLite (default) and MySQL.
 """
@@ -29,11 +29,11 @@ def get_database_url():
     if database_url:
         return database_url
     
-    # Default to SQLite at backend/data/mentormind.db
+    # Default to SQLite at backend/data/knowrizon.db
     # Get the backend directory path
     backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_dir = os.path.join(backend_dir, 'data')
-    db_path = os.path.join(data_dir, 'mentormind.db')
+    db_path = os.path.join(data_dir, 'knowrizon.db')
     
     return f'sqlite:///{db_path}'
 

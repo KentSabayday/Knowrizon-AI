@@ -1,8 +1,15 @@
 {
-  "name": "MentorMind",
+  "name": "Knowrizon",
   "description": "Personal AI Tutor - Learn smarter with AI-powered tutoring, quizzes, and progress tracking",
-  "repository": "https://github.com/yourusername/mentormind",
-  "keywords": ["ai", "education", "tutor", "learning", "flask", "react"],
+  "repository": "https://github.com/yourusername/knowrizon",
+  "keywords": [
+    "ai",
+    "education",
+    "tutor",
+    "learning",
+    "flask",
+    "react"
+  ],
   "stack": "heroku-24",
   "buildpacks": [
     {

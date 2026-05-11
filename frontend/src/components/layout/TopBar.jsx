@@ -3,7 +3,7 @@ import { useTheme } from '../../context/ThemeContext'
 import { useAuth } from '../../context/AuthContext'
 import { Button } from '../ui'
 
-export function TopBar({ title = 'MentorMind' }) {
+export function TopBar({ title = 'Knowrizon' }) {
   const { theme, toggleTheme } = useTheme()
   const { user, isAnonymous } = useAuth()
 

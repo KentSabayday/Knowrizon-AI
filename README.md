@@ -1,8 +1,8 @@
-# MentorMind 🎓✨
+# Knowrizon 🎓✨
 
 **Your Personal AI Tutor — Learn Smarter**
 
-MentorMind is an AI-powered tutoring application built for the **Kiro Hackathon**. It helps users learn through interactive chat with AI tutors, content summarization, quiz generation, and progress tracking — all powered by Nebius AI.
+Knowrizon is an AI-powered tutoring application built for academic research. It helps users learn through interactive chat with AI tutors, content summarization, quiz generation, and progress tracking — all powered by Nebius AI.
 
 ## 🚀 Features
 
@@ -25,14 +25,14 @@ MentorMind is an AI-powered tutoring application built for the **Kiro Hackathon*
 ## 📁 Project Structure
 
 ```
-mentormind/
+knowrizon/
 ├── .kiro/
 │   ├── prompts/           # AI agent prompt configurations
 │   │   ├── TutorAgent.json
 │   │   ├── QuizAgent.json
 │   │   └── ContentAgent.json
 │   ├── specs/             # Feature specifications (requirements, design, tasks)
-│   │   ├── mentormind-ai-tutor/
+│   │   ├── knowrizon-ai-tutor/
 │   │   ├── nebius-ai-integration/
 │   │   └── friends-communication/
 │   └── steering/          # Architecture documentation
@@ -105,7 +105,7 @@ python mix.py build
 
 ## 🤖 AI Agents
 
-MentorMind uses three specialized AI agents, each with configurable prompts stored in `.kiro/prompts/`:
+Knowrizon uses three specialized AI agents, each with configurable prompts stored in `.kiro/prompts/`:
 
 | Agent | Role | Model |
 |-------|------|-------|
@@ -113,9 +113,9 @@ MentorMind uses three specialized AI agents, each with configurable prompts stor
 | **QuizAgent** | Generates multiple-choice quizzes with explanations | Nebius Text Model |
 | **ContentAgent** | Extracts key points from PDFs and videos | Nebius Vision + Text Models |
 
-## 📋 Kiro Development Process
+## 📋 Development Process
 
-This project was built using Kiro's spec-driven development workflow:
+This project was built using a spec-driven development workflow:
 
 1. **Steering Documents** (`.kiro/steering/`) — Architecture principles and coding standards
 2. **Specs** (`.kiro/specs/`) — Feature requirements, design documents, and implementation tasks

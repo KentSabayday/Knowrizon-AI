@@ -1,6 +1,6 @@
 """Property-based tests for authentication.
 
-Feature: mentormind-ai-tutor
+Feature: knowrizon-ai-tutor
 
 NOTE: These tests have been superseded by test_database_auth_properties.py
 which provides comprehensive property-based testing for the database-backed
