@@ -12,7 +12,7 @@ class Conversation(db.Model):
     __tablename__ = 'conversations'
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(String(36), ForeignKey('users.id'), nullable=False)
     title = Column(String(255), nullable=True)  # Auto-generated from first message
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
