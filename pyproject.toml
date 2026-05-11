@@ -14,9 +14,3 @@ dependencies = [
     "pusher>=3.3.0",
     "psycopg2-binary>=2.9.0",
 ]
-
-[tool.vercel]
-entrypoint = "app:app"
-
-[tool.vercel.scripts]
-build = "cd frontend && npm install && npm run build && cp -r dist ../public"
