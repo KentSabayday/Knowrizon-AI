@@ -55,5 +55,9 @@ backend/data/*.db
 # Node
 node_modules/
 
+# Build output
+public/
+frontend/dist/
+
 # Vercel
 .vercel/

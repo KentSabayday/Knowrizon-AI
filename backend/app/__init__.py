@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, send_from_directory
+from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -24,13 +24,7 @@ def create_app():
     """Create and configure the Flask application."""
     global socketio
 
-    # Determine static folder path for serving frontend
-    static_folder = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        'frontend', 'dist',
-    )
-
-    app = Flask(__name__, static_folder=static_folder, static_url_path='')
+    app = Flask(__name__)
 
     # Enable CORS for frontend communication — allow all origins
     CORS(app, origins="*", supports_credentials=True)
@@ -61,21 +55,9 @@ def create_app():
                 "SocketIO init skipped: %s", exc
             )
 
-    # Serve React frontend for non-API routes
-    @app.route('/')
-    def serve_index():
-        if os.path.exists(os.path.join(app.static_folder, 'index.html')):
-            return send_from_directory(app.static_folder, 'index.html')
-        return {'message': 'Knowrizon API is running. Frontend not built yet.'}, 200
-
-    @app.route('/<path:path>')
-    def serve_static(path):
-        # Try to serve static file first
-        if os.path.exists(os.path.join(app.static_folder, path)):
-            return send_from_directory(app.static_folder, path)
-        # Fall back to index.html for SPA routing
-        if os.path.exists(os.path.join(app.static_folder, 'index.html')):
-            return send_from_directory(app.static_folder, 'index.html')
-        return {'error': 'Not found'}, 404
+    # Health check endpoint
+    @app.route('/api/health')
+    def health():
+        return {'status': 'ok', 'runtime': 'vercel' if IS_VERCEL else 'local'}
 
     return app

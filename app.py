@@ -1,5 +1,5 @@
 """
-Vercel WSGI entrypoint — serves Flask API + React static files.
+Vercel WSGI entrypoint — loads the Flask app.
 
 Vercel detects this file at the project root and loads the `app` variable.
 Configured via [tool.vercel] entrypoint = "app:app" in pyproject.toml.
