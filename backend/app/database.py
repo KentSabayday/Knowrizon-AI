@@ -55,17 +55,30 @@ def init_db(app):
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Connection pooling settings for PostgreSQL (production)
+    # Connection settings for PostgreSQL (production / serverless)
     if not database_url.startswith('sqlite'):
-        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            'pool_size': 5,
-            'max_overflow': 10,
-            'pool_recycle': 1800,
-            'pool_pre_ping': True,
-            'connect_args': {
-                'sslmode': 'require',
-            },
-        }
+        is_vercel = os.environ.get('VERCEL') == '1'
+        if is_vercel:
+            # Serverless: NullPool — no persistent connections between invocations
+            from sqlalchemy.pool import NullPool
+            app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+                'poolclass': NullPool,
+                'connect_args': {
+                    'sslmode': 'require',
+                    'connect_timeout': 10,
+                },
+            }
+        else:
+            # Local dev: connection pooling for performance
+            app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+                'pool_size': 5,
+                'max_overflow': 10,
+                'pool_recycle': 1800,
+                'pool_pre_ping': True,
+                'connect_args': {
+                    'sslmode': 'require',
+                },
+            }
 
     db.init_app(app)
 

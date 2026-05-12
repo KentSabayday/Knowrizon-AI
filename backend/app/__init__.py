@@ -55,9 +55,4 @@ def create_app():
                 "SocketIO init skipped: %s", exc
             )
 
-    # Health check endpoint
-    @app.route('/api/health')
-    def health():
-        return {'status': 'ok', 'runtime': 'vercel' if IS_VERCEL else 'local'}
-
     return app
