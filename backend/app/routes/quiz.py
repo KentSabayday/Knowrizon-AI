@@ -118,7 +118,7 @@ def submit_quiz():
         if not isinstance(answer, int):
             return jsonify({'error': f'Answer at index {i} must be an integer'}), 400
     
-    # Submit quiz
+    # Submit quiz (validates, grades, and marks as submitted in DB)
     result, error_msg = quiz_service.submit_quiz(
         quiz_id=quiz_id,
         user_id=user_id,
@@ -136,57 +136,33 @@ def submit_quiz():
         else:
             return jsonify({'error': error_msg}), 400
     
-    # Get the quiz to include question details in response
-    quiz = quiz_service.get_quiz(quiz_id)
+    # Load the quiz data from DB to build the detailed response
+    from app.models.quiz_data import QuizData
+    quiz_data = QuizData.query.get(quiz_id)
+    grade_result = quiz_data.grade(answers)
     
     # Record quiz result to database for progress tracking
-    # Build answers dict for storage
-    answers_dict = {}
-    for i, answer in enumerate(answers):
-        if i < len(quiz.questions):
-            answers_dict[quiz.questions[i].id] = {
-                'userAnswer': answer,
-                'correctAnswer': quiz.questions[i].correct_index,
-                'isCorrect': answer == quiz.questions[i].correct_index
-            }
-    
-    # Record to database using ProgressService
-    progress_service.record_quiz_result(
-        user_id=user_id,
-        quiz_id=quiz_id,
-        topic=quiz.topic,
-        score=result.correct_count,
-        total_questions=result.total_questions,
-        answers=answers_dict
-    )
-    
-    # Build detailed results with explanations for incorrect answers
-    results = []
-    for i, question in enumerate(quiz.questions):
-        user_answer = answers[i] if i < len(answers) else -1
-        is_correct = user_answer == question.correct_index
+    quiz = quiz_service.get_quiz(quiz_id)
+    if quiz:
+        answers_dict = {}
+        for i, answer in enumerate(answers):
+            if i < len(quiz.questions):
+                answers_dict[quiz.questions[i].id] = {
+                    'userAnswer': answer,
+                    'correctAnswer': quiz.questions[i].correct_index,
+                    'isCorrect': answer == quiz.questions[i].correct_index
+                }
         
-        result_item = {
-            'questionId': question.id,
-            'question': question.question,
-            'userAnswer': user_answer,
-            'correctAnswer': question.correct_index,
-            'isCorrect': is_correct,
-            'options': question.options
-        }
-        
-        # Include explanation for incorrect answers
-        if not is_correct:
-            result_item['explanation'] = question.explanation
-        
-        results.append(result_item)
+        progress_service.record_quiz_result(
+            user_id=user_id,
+            quiz_id=quiz_id,
+            topic=quiz.topic,
+            score=result.correct_count,
+            total_questions=result.total_questions,
+            answers=answers_dict
+        )
     
-    return jsonify({
-        'score': result.score,
-        'correctCount': result.correct_count,
-        'totalQuestions': result.total_questions,
-        'results': results
-    }), 200
+    return jsonify(grade_result), 200
 
 
 @quiz_bp.route('/<quiz_id>', methods=['GET'])

@@ -94,6 +94,7 @@ def init_db(app):
     from app.models import (Friend, FriendRequest, DirectChat, DirectMessage,
                            GroupMessage, GroupLearning, GroupMember, Call,
                            CallParticipant, UserPresence)
+    from app.models.quiz_data import QuizData
 
     # Create all tables
     with app.app_context():
