@@ -1,4 +1,5 @@
 """Content service for managing uploaded content with database persistence."""
+import io
 import os
 from datetime import datetime
 from typing import Optional, List, Tuple
@@ -17,17 +18,27 @@ class ContentService:
         
         Args:
             upload_dir: Directory for storing uploaded files.
-                       Defaults to 'uploads' in the backend directory.
+                       Uses /tmp on Vercel (read-only fs), local uploads dir otherwise.
         """
+        is_vercel = os.environ.get('VERCEL', '') == '1'
+        
         if upload_dir is None:
-            # Default to uploads directory in backend
-            backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            upload_dir = os.path.join(backend_dir, 'uploads')
+            if is_vercel:
+                upload_dir = '/tmp/knowrizon_uploads'
+            else:
+                backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+                upload_dir = os.path.join(backend_dir, 'uploads')
         
         self._upload_dir = upload_dir
+        self._is_vercel = is_vercel
         
-        # Ensure upload directory exists
-        os.makedirs(self._upload_dir, exist_ok=True)
+        # Ensure upload directory exists (safe on both local and /tmp)
+        try:
+            os.makedirs(self._upload_dir, exist_ok=True)
+        except OSError:
+            # Fallback to /tmp if the directory cannot be created
+            self._upload_dir = '/tmp/knowrizon_uploads'
+            os.makedirs(self._upload_dir, exist_ok=True)
     
     def validate_file_type(self, filename: str) -> Tuple[bool, Optional[str], Optional[str]]:
         """
@@ -52,7 +63,11 @@ class ContentService:
     def save_content(self, user_id: str, filename: str, content_type: str,
                      file_data: bytes) -> Content:
         """
-        Save uploaded content to file system and database.
+        Save uploaded content to database and writable storage.
+        
+        On Vercel: saves to /tmp (ephemeral) and caches bytes in memory for
+        immediate processing within the same request lifecycle.
+        Locally: saves to the persistent uploads directory.
         
         Args:
             user_id: ID of the user uploading the content.
@@ -86,12 +101,17 @@ class ContentService:
         safe_filename = f"{content.id}_{filename}"
         file_path = os.path.join(user_upload_dir, safe_filename)
         
-        # Save file
+        # Save file to writable storage (/tmp on Vercel, local uploads dir otherwise)
         with open(file_path, 'wb') as f:
             f.write(file_data)
         
         # Update file path
         content.file_path = file_path
+        
+        # Cache raw bytes on the content object for in-memory processing
+        # This avoids re-reading from /tmp which may be cleared between invocations
+        content._raw_data = file_data
+        
         db.session.commit()
         
         return content
@@ -229,6 +249,8 @@ class ContentService:
     def _extract_text(self, content: Content) -> str:
         """
         Extract text from content file.
+        Uses cached in-memory bytes when available (Vercel serverless),
+        falls back to reading from the file path.
         
         Args:
             content: The content to extract text from.
@@ -236,19 +258,24 @@ class ContentService:
         Returns:
             Extracted text string.
         """
+        # Get raw bytes if cached on the content object (set during save_content)
+        raw_data = getattr(content, '_raw_data', None)
+        
         if content.content_type == 'pdf':
-            return self._extract_pdf_text(content.file_path)
+            return self._extract_pdf_text(content.file_path, raw_data=raw_data)
         elif content.content_type == 'video':
             return f"[Video content: {content.filename}. Video transcription not yet implemented.]"
         
         return ""
     
-    def _extract_pdf_text(self, file_path: str) -> str:
+    def _extract_pdf_text(self, file_path: str, raw_data: bytes = None) -> str:
         """
         Extract text from a PDF file.
+        Supports both file-path reading and in-memory BytesIO reading.
         
         Args:
-            file_path: Path to the PDF file.
+            file_path: Path to the PDF file (used if raw_data is None).
+            raw_data: Raw PDF bytes for in-memory processing (preferred on Vercel).
             
         Returns:
             Extracted text string.
@@ -256,10 +283,14 @@ class ContentService:
         try:
             from PyPDF2 import PdfReader
             
-            if not os.path.exists(file_path):
-                return f"[PDF file not found: {file_path}]"
+            # Prefer in-memory bytes (works on read-only filesystems)
+            if raw_data:
+                reader = PdfReader(io.BytesIO(raw_data))
+            elif os.path.exists(file_path):
+                reader = PdfReader(file_path)
+            else:
+                return f"[PDF file not available. The file may have been processed in a previous serverless invocation.]"
             
-            reader = PdfReader(file_path)
             text_parts = []
             
             for page_num, page in enumerate(reader.pages, 1):
