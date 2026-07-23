@@ -1,5 +1,5 @@
 """Content routes for file uploads and content management."""
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from app.services.content_service import content_service
 from app.services.auth_service import auth_service
 from app.routes.auth import require_auth
@@ -51,7 +51,7 @@ def upload_content():
         - 500: Processing failed
     """
     # Get user from request context (set by require_auth decorator)
-    user = request.current_user
+    user = g.current_user
     user_id = user.id
     
     # Check if file is present
@@ -123,7 +123,7 @@ def list_contents():
         - 401: Not authenticated
     """
     # Get user from request context (set by require_auth decorator)
-    user = request.current_user
+    user = g.current_user
     user_id = user.id
     
     contents = content_service.get_user_content(user_id)
@@ -166,7 +166,7 @@ def get_content(content_id: str):
         - 404: Content not found
     """
     # Get user from request context (set by require_auth decorator)
-    user = request.current_user
+    user = g.current_user
     user_id = user.id
     
     # Use user_id filter to ensure user can only access their own content
@@ -212,7 +212,7 @@ def delete_content(content_id: str):
         - 404: Content not found
     """
     # Get user from request context (set by require_auth decorator)
-    user = request.current_user
+    user = g.current_user
     user_id = user.id
     
     success, error = content_service.delete_content(content_id, user_id)
@@ -246,7 +246,7 @@ def get_content_text(content_id: str):
         - 403: Not authorized
         - 404: Content not found
     """
-    user = request.current_user
+    user = g.current_user
     user_id = user.id
     
     content = content_service.get_content(content_id, user_id)
@@ -283,7 +283,7 @@ def get_all_content_context():
         - 200: List of content context items
         - 401: Not authenticated
     """
-    user = request.current_user
+    user = g.current_user
     user_id = user.id
     
     contents = content_service.get_user_content(user_id)
@@ -325,7 +325,7 @@ def reprocess_content(content_id: str):
         - 404: Content not found
         - 500: Processing failed
     """
-    user = request.current_user
+    user = g.current_user
     user_id = user.id
     
     # Verify ownership

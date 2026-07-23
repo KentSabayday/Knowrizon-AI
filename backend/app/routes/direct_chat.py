@@ -1,5 +1,5 @@
 """Direct chat API routes for messaging between friends."""
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from app.services.chat_service import chat_service
 from app.decorators import require_registered as require_auth
 
@@ -16,7 +16,7 @@ def get_or_create_direct_chat(friend_id):
         - 200: Direct chat object
         - 400: Validation error
     """
-    user = request.current_user
+    user = g.current_user
     
     chat, error = chat_service.get_or_create_direct_chat(user.id, friend_id)
     
@@ -35,7 +35,7 @@ def get_user_chats():
     Returns:
         - 200: List of direct chats
     """
-    user = request.current_user
+    user = g.current_user
     chats = chat_service.get_user_chats(user.id)
     
     return jsonify({'chats': chats}), 200
@@ -56,7 +56,7 @@ def get_messages(chat_id):
         - 400: Validation error
         - 404: Chat not found
     """
-    user = request.current_user
+    user = g.current_user
     limit = request.args.get('limit', 50, type=int)
     offset = request.args.get('offset', 0, type=int)
     
@@ -83,7 +83,7 @@ def send_message(chat_id):
         - 400: Validation error
         - 404: Chat not found
     """
-    user = request.current_user
+    user = g.current_user
     data = request.get_json()
     
     if not data or not data.get('content'):
@@ -112,7 +112,7 @@ def mark_as_read(chat_id):
         - 400: Validation error
         - 404: Chat not found
     """
-    user = request.current_user
+    user = g.current_user
     data = request.get_json() or {}
     message_ids = data.get('messageIds')
     

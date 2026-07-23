@@ -1,5 +1,5 @@
 """Quiz routes for quiz generation and submission."""
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from app.services.quiz_service import quiz_service
 from app.services.progress_service import progress_service
 from app.decorators import require_registered as require_auth
@@ -29,7 +29,7 @@ def generate_quiz():
         - 404: Content not found
         - 500: Quiz generation failed
     """
-    user_id = request.current_user.id
+    user_id = g.current_user.id
     
     data = request.get_json()
     
@@ -93,7 +93,7 @@ def submit_quiz():
         - 404: Quiz not found
         - 409: Quiz already submitted
     """
-    user_id = request.current_user.id
+    user_id = g.current_user.id
     
     data = request.get_json()
     
@@ -177,7 +177,7 @@ def get_quiz(quiz_id: str):
         - 401: Unauthorized
         - 404: Quiz not found
     """
-    user_id = request.current_user.id
+    user_id = g.current_user.id
     
     quiz = quiz_service.get_quiz(quiz_id)
     
@@ -207,7 +207,7 @@ def list_quizzes():
         - 200: List of quizzes
         - 401: Unauthorized
     """
-    user_id = request.current_user.id
+    user_id = g.current_user.id
     
     quizzes = quiz_service.get_user_quizzes(user_id)
     
@@ -234,7 +234,7 @@ def list_results():
         - 200: List of quiz results
         - 401: Unauthorized
     """
-    user_id = request.current_user.id
+    user_id = g.current_user.id
     
     results = quiz_service.get_user_results(user_id)
     

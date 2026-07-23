@@ -1,6 +1,6 @@
 """Chat routes for TutorAgent interaction with conversation history."""
 import uuid
-from flask import Blueprint, request, jsonify, Response, stream_with_context
+from flask import Blueprint, request, jsonify, Response, stream_with_context, g
 from app.services.agent_orchestrator import agent_orchestrator
 from app.services.auth_service import auth_service
 from app.database import db
@@ -30,7 +30,7 @@ def get_conversations():
     Returns:
         - 200: List of conversations
     """
-    user = request.current_user
+    user = g.current_user
     
     conversations = Conversation.query.filter_by(
         user_id=user.id,
@@ -51,7 +51,7 @@ def create_conversation():
     Returns:
         - 201: New conversation created
     """
-    user = request.current_user
+    user = g.current_user
     
     conversation = Conversation(
         user_id=user.id,
@@ -73,7 +73,7 @@ def get_conversation(conversation_id):
         - 200: Conversation with messages
         - 404: Conversation not found
     """
-    user = request.current_user
+    user = g.current_user
     
     conversation = Conversation.query.filter_by(
         id=conversation_id,
@@ -96,7 +96,7 @@ def delete_conversation(conversation_id):
         - 200: Conversation deleted
         - 404: Conversation not found
     """
-    user = request.current_user
+    user = g.current_user
     
     conversation = Conversation.query.filter_by(
         id=conversation_id,

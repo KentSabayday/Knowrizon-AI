@@ -1,6 +1,6 @@
 """Authentication routes for user registration, login, and anonymous sessions."""
 from functools import wraps
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from app.services.auth_service import auth_service
 from app.errors import db_error_handler
 
@@ -11,7 +11,7 @@ def require_auth(f):
     """
     Decorator to require authentication for a route.
     
-    Validates the Authorization header and sets request.current_user.
+    Validates the Authorization header and sets g.current_user.
     Returns 401 if authentication fails.
     """
     @wraps(f)
@@ -27,8 +27,8 @@ def require_auth(f):
         if not user:
             return jsonify({'error': 'Session expired, please login again'}), 401
         
-        # Store user in request context
-        request.current_user = user
+        # Store user in Flask's g context
+        g.current_user = user
         return f(*args, **kwargs)
     
     return decorated_function

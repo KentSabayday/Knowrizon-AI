@@ -1,5 +1,5 @@
 """Friends API routes for managing friendships and friend requests."""
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from app.services.friend_service import friend_service
 from app.services.presence_service import presence_service
 from app.decorators import require_registered as require_auth
@@ -16,7 +16,7 @@ def get_friends():
     Returns:
         - 200: List of friends with online status
     """
-    user = request.current_user
+    user = g.current_user
     friends = friend_service.get_friends(user.id)
     
     # Add online status to each friend
@@ -46,7 +46,7 @@ def search_users():
         - 200: List of matching users
         - 400: Missing or invalid query
     """
-    user = request.current_user
+    user = g.current_user
     query = request.args.get('q', '').strip()
     limit = request.args.get('limit', 20, type=int)
     
@@ -71,7 +71,7 @@ def send_friend_request():
         - 201: Friend request sent
         - 400: Invalid request or validation error
     """
-    user = request.current_user
+    user = g.current_user
     data = request.get_json()
     
     if not data or not data.get('recipientId'):
@@ -100,7 +100,7 @@ def get_pending_requests():
     Returns:
         - 200: List of pending friend requests
     """
-    user = request.current_user
+    user = g.current_user
     request_type = request.args.get('type', 'received')
     
     if request_type == 'sent':
@@ -122,7 +122,7 @@ def accept_friend_request(request_id):
         - 400: Invalid request
         - 404: Request not found
     """
-    user = request.current_user
+    user = g.current_user
     
     success, error = friend_service.accept_request(request_id, user.id)
     
@@ -144,7 +144,7 @@ def decline_friend_request(request_id):
         - 400: Invalid request
         - 404: Request not found
     """
-    user = request.current_user
+    user = g.current_user
     
     success, error = friend_service.decline_request(request_id, user.id)
     
@@ -165,7 +165,7 @@ def remove_friend(friend_id):
         - 200: Friend removed
         - 404: Friendship not found
     """
-    user = request.current_user
+    user = g.current_user
     
     success, error = friend_service.remove_friend(user.id, friend_id)
     
@@ -184,7 +184,7 @@ def get_friends_presence():
     Returns:
         - 200: List of friend presence statuses
     """
-    user = request.current_user
+    user = g.current_user
     presences = presence_service.get_friends_presence(user.id)
     
     return jsonify({'presences': presences}), 200

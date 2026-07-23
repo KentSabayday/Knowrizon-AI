@@ -1,5 +1,5 @@
 """Progress routes for user learning progress tracking."""
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from app.services.progress_service import progress_service
 from app.decorators import require_registered as require_auth
 from app.errors import db_error_handler
@@ -25,7 +25,7 @@ def get_progress():
         - 200: Progress data
         - 401: Unauthorized
     """
-    user_id = request.current_user.id
+    user_id = g.current_user.id
     
     # Use the new database-backed get_progress method
     progress = progress_service.get_progress(user_id)
@@ -70,7 +70,7 @@ def get_quiz_results():
         - 200: List of quiz results
         - 401: Unauthorized
     """
-    user_id = request.current_user.id
+    user_id = g.current_user.id
     
     results = progress_service.get_quiz_results(user_id)
     
@@ -98,7 +98,7 @@ def get_topics_mastered():
         - 200: List of mastered topics
         - 401: Unauthorized
     """
-    user_id = request.current_user.id
+    user_id = g.current_user.id
     
     topics = progress_service.get_topics_mastered(user_id)
     
@@ -118,7 +118,7 @@ def get_topics_needing_work():
         - 200: List of topics needing work
         - 401: Unauthorized
     """
-    user_id = request.current_user.id
+    user_id = g.current_user.id
     
     topics = progress_service.get_topics_needing_work(user_id)
     

@@ -1,5 +1,5 @@
 """Groups API routes for managing group learning sessions."""
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from app.services.group_service import group_service
 from app.decorators import require_registered as require_auth
 
@@ -20,7 +20,7 @@ def create_group():
         - 201: Group created
         - 400: Validation error
     """
-    user = request.current_user
+    user = g.current_user
     data = request.get_json()
     
     if not data or not data.get('name'):
@@ -47,7 +47,7 @@ def get_user_groups():
     Returns:
         - 200: List of groups
     """
-    user = request.current_user
+    user = g.current_user
     groups = group_service.get_user_groups(user.id)
     
     return jsonify({'groups': groups}), 200
@@ -64,7 +64,7 @@ def get_group(group_id):
         - 400: Not a member
         - 404: Group not found
     """
-    user = request.current_user
+    user = g.current_user
     
     group, error = group_service.get_group(group_id, user.id)
     
@@ -88,7 +88,7 @@ def invite_to_group(group_id):
         - 200: Invitation results
         - 400: Validation error
     """
-    user = request.current_user
+    user = g.current_user
     data = request.get_json()
     
     if not data or not data.get('userIds'):
@@ -120,7 +120,7 @@ def join_group(group_id):
         - 400: Validation error
         - 404: Invitation not found
     """
-    user = request.current_user
+    user = g.current_user
     
     success, error = group_service.join_group(group_id, user.id)
     
@@ -141,7 +141,7 @@ def leave_group(group_id):
         - 200: Left successfully
         - 400: Validation error
     """
-    user = request.current_user
+    user = g.current_user
     
     success, error = group_service.leave_group(group_id, user.id)
     
@@ -162,7 +162,7 @@ def decline_invitation(group_id):
         - 400: Validation error
         - 404: Invitation not found
     """
-    user = request.current_user
+    user = g.current_user
     
     success, error = group_service.decline_invitation(group_id, user.id)
     
@@ -184,7 +184,7 @@ def remove_member(group_id, member_id):
         - 400: Not authorized or validation error
         - 404: Member not found
     """
-    user = request.current_user
+    user = g.current_user
     
     success, error = group_service.remove_member(group_id, user.id, member_id)
     
@@ -206,7 +206,7 @@ def get_group_members(group_id):
         - 400: Not a member
         - 404: Group not found
     """
-    user = request.current_user
+    user = g.current_user
     
     group, error = group_service.get_group(group_id, user.id)
     
@@ -226,7 +226,7 @@ def get_pending_invitations():
     Returns:
         - 200: List of pending invitations
     """
-    user = request.current_user
+    user = g.current_user
     invitations = group_service.get_pending_invitations(user.id)
     
     return jsonify({'invitations': invitations}), 200
@@ -247,7 +247,7 @@ def get_group_messages(group_id):
         - 400: Not a member
         - 404: Group not found
     """
-    user = request.current_user
+    user = g.current_user
     limit = request.args.get('limit', 50, type=int)
     offset = request.args.get('offset', 0, type=int)
     
@@ -274,7 +274,7 @@ def send_group_message(group_id):
         - 400: Validation error
         - 404: Group not found
     """
-    user = request.current_user
+    user = g.current_user
     data = request.get_json()
     
     if not data or not data.get('content'):

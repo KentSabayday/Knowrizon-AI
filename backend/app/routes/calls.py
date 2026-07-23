@@ -1,5 +1,5 @@
 """Calls API routes for voice and video calls."""
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from app.services.call_service import call_service
 from app.decorators import require_registered as require_auth
 
@@ -21,7 +21,7 @@ def initiate_call():
         - 201: Call initiated
         - 400: Validation error
     """
-    user = request.current_user
+    user = g.current_user
     data = request.get_json()
     
     if not data:
@@ -56,7 +56,7 @@ def join_call(call_id):
         - 400: Validation error
         - 404: Call not found
     """
-    user = request.current_user
+    user = g.current_user
     
     participant, error = call_service.join_call(call_id, user.id)
     
@@ -78,7 +78,7 @@ def leave_call(call_id):
         - 400: Validation error
         - 404: Call not found
     """
-    user = request.current_user
+    user = g.current_user
     
     success, error = call_service.leave_call(call_id, user.id)
     
@@ -100,7 +100,7 @@ def decline_call(call_id):
         - 400: Validation error
         - 404: Call not found
     """
-    user = request.current_user
+    user = g.current_user
     
     success, error, call_ended = call_service.decline_call(call_id, user.id)
     
@@ -122,7 +122,7 @@ def end_call(call_id):
         - 400: Validation error
         - 404: Call not found
     """
-    user = request.current_user
+    user = g.current_user
     
     success, error = call_service.end_call(call_id, user.id)
     
@@ -149,7 +149,7 @@ def update_media_state(call_id):
         - 400: Validation error
         - 404: Call not found
     """
-    user = request.current_user
+    user = g.current_user
     data = request.get_json() or {}
     
     participant, error = call_service.update_media_state(
@@ -178,7 +178,7 @@ def get_call(call_id):
         - 400: Not a participant
         - 404: Call not found
     """
-    user = request.current_user
+    user = g.current_user
     
     call, error = call_service.get_call(call_id, user.id)
     
@@ -198,7 +198,7 @@ def get_active_call():
     Returns:
         - 200: Active call or null
     """
-    user = request.current_user
+    user = g.current_user
     call = call_service.get_active_call(user.id)
     
     return jsonify({'call': call}), 200
@@ -213,7 +213,7 @@ def get_incoming_calls():
     Returns:
         - 200: List of incoming calls
     """
-    user = request.current_user
+    user = g.current_user
     calls = call_service.get_incoming_calls(user.id)
     
     return jsonify({'calls': calls}), 200
@@ -230,7 +230,7 @@ def cleanup_stale_calls(context_type, context_id):
         - 200: Cleanup completed
         - 400: Invalid context type
     """
-    user = request.current_user
+    user = g.current_user
     
     if context_type not in ['direct', 'group']:
         return jsonify({'error': 'Invalid context type'}), 400
