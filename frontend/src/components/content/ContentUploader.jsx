@@ -1,8 +1,22 @@
 import { useState, useRef } from 'react';
-import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { motion } from 'framer-motion';
+import {
+  Upload, FileText, Video, Image, FileCode, Archive, Music,
+  X, CheckCircle2, AlertCircle,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE } from '../../lib/api';
+
+/**
+ * ContentUploader — Premium glassmorphism upload zone.
+ *
+ * Preserves: ALL upload logic (XHR progress, validateFile, ALLOWED_TYPES,
+ *            ALLOWED_EXTENSIONS, handleDrop, handleDragOver, handleFileSelect,
+ *            handleUpload, handleClear, formatFileSize).
+ *
+ * New: Glass drop zone with animated border, format badge grid, staged upload
+ *      progress, success result card, drag-over visual feedback.
+ */
 
 // Allowed file types
 const ALLOWED_TYPES = {
@@ -16,12 +30,25 @@ const ALLOWED_TYPES = {
 
 const ALLOWED_EXTENSIONS = ['.mp4', '.avi', '.mov', '.mkv', '.webm', '.pdf'];
 
-/**
- * ContentUploader component for uploading videos and PDFs.
- * Handles file selection, upload progress, and displays processing results.
- * 
- * Requirements: 5.1, 5.3, 5.4
- */
+/** Format badges to show in the drop zone */
+const FORMAT_BADGES = [
+  { icon: FileText, label: 'PDF', color: '#EF4444' },
+  { icon: Video, label: 'MP4', color: '#5B5FFF' },
+  { icon: Video, label: 'MOV', color: '#5B5FFF' },
+  { icon: Video, label: 'AVI', color: '#5B5FFF' },
+  { icon: Video, label: 'MKV', color: '#5B5FFF' },
+  { icon: Video, label: 'WebM', color: '#5B5FFF' },
+];
+
+/** Upload stages for the animated progress */
+const UPLOAD_STAGES = [
+  { label: 'Uploading', emoji: '📤' },
+  { label: 'Scanning', emoji: '🔍' },
+  { label: 'Extracting text', emoji: '📝' },
+  { label: 'Building knowledge', emoji: '🧠' },
+  { label: 'Almost ready', emoji: '✨' },
+];
+
 export function ContentUploader({ onUploadComplete, onError }) {
   const { token } = useAuth();
   const [selectedFile, setSelectedFile] = useState(null);
@@ -29,6 +56,7 @@ export function ContentUploader({ onUploadComplete, onError }) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadResult, setUploadResult] = useState(null);
   const [error, setError] = useState(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
   /**
@@ -43,7 +71,7 @@ export function ContentUploader({ onUploadComplete, onError }) {
 
     // Check extension
     const fileName = file.name.toLowerCase();
-    const hasValidExtension = ALLOWED_EXTENSIONS.some(ext => 
+    const hasValidExtension = ALLOWED_EXTENSIONS.some(ext =>
       fileName.endsWith(ext)
     );
 
@@ -83,6 +111,7 @@ export function ContentUploader({ onUploadComplete, onError }) {
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    setIsDragOver(false);
 
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
@@ -106,6 +135,13 @@ export function ContentUploader({ onUploadComplete, onError }) {
   const handleDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
   };
 
   /**
@@ -124,7 +160,7 @@ export function ContentUploader({ onUploadComplete, onError }) {
 
       // Create XMLHttpRequest for progress tracking
       const xhr = new XMLHttpRequest();
-      
+
       const uploadPromise = new Promise((resolve, reject) => {
         xhr.upload.addEventListener('progress', (e) => {
           if (e.lengthComputable) {
@@ -167,13 +203,13 @@ export function ContentUploader({ onUploadComplete, onError }) {
       xhr.send(formData);
 
       const result = await uploadPromise;
-      
+
       setUploadResult(result);
       setSelectedFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      
+
       onUploadComplete?.(result);
     } catch (err) {
       const errorMessage = err.message || 'Failed to upload file';
@@ -198,25 +234,6 @@ export function ContentUploader({ onUploadComplete, onError }) {
   };
 
   /**
-   * Get file type icon
-   */
-  const getFileIcon = (filename) => {
-    const ext = filename?.toLowerCase().split('.').pop();
-    if (['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(ext)) {
-      return (
-        <svg className="w-8 h-8 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      );
-    }
-    return (
-      <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-      </svg>
-    );
-  };
-
-  /**
    * Format file size
    */
   const formatFileSize = (bytes) => {
@@ -227,181 +244,223 @@ export function ContentUploader({ onUploadComplete, onError }) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  /** Get file icon based on extension */
+  const getFileIcon = (filename) => {
+    const ext = filename?.toLowerCase().split('.').pop();
+    if (['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(ext)) return Video;
+    return FileText;
+  };
+
+  /** Current upload stage based on progress */
+  const currentStage = Math.min(
+    Math.floor((uploadProgress / 100) * UPLOAD_STAGES.length),
+    UPLOAD_STAGES.length - 1
+  );
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-          </svg>
-          Upload Content
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {/* Drop Zone */}
-        <div
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-            selectedFile
-              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-              : 'border-gray-300 dark:border-gray-600 hover:border-indigo-400 dark:hover:border-indigo-500'
-          }`}
-        >
-          {!selectedFile ? (
-            <>
-              <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                Drag and drop a file here, or
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".mp4,.avi,.mov,.mkv,.webm,.pdf,video/*,application/pdf"
-                onChange={handleFileSelect}
-                className="hidden"
-                id="file-upload"
-                aria-label="File upload"
-              />
-              <label htmlFor="file-upload">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="mt-2"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Browse Files
-                </Button>
-              </label>
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Supported: Video (MP4, AVI, MOV, MKV, WebM) and PDF files
-              </p>
-            </>
-          ) : (
+    <div className="space-y-4">
+      {/* ── Drop Zone ── */}
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        className={`relative rounded-2xl border-2 border-dashed transition-all duration-300 overflow-hidden ${
+          isDragOver
+            ? 'border-[#22C7FF]/50 bg-[#22C7FF]/[0.04] scale-[1.01]'
+            : selectedFile
+              ? 'border-[#22C7FF]/30 bg-[#22C7FF]/[0.02]'
+              : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.03]'
+        }`}
+      >
+        {!selectedFile ? (
+          /* ── Empty drop zone ── */
+          <div className="p-8 text-center">
+            <div className={`w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center transition-all ${
+              isDragOver ? 'bg-[#22C7FF]/20 scale-110' : 'bg-white/[0.04]'
+            }`}>
+              <Upload className={`w-6 h-6 transition-colors ${isDragOver ? 'text-[#22C7FF]' : 'text-[#64748B]'}`} />
+            </div>
+
+            <p className="text-sm text-[#CBD5E1] font-medium mb-1">
+              {isDragOver ? 'Drop your file here!' : 'Drop your learning materials here'}
+            </p>
+            <p className="text-xs text-[#64748B] mb-4">or</p>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".mp4,.avi,.mov,.mkv,.webm,.pdf,video/*,application/pdf"
+              onChange={handleFileSelect}
+              className="hidden"
+              id="file-upload"
+              aria-label="File upload"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-sm text-white font-medium hover:bg-white/[0.1] hover:border-white/[0.12] transition-all"
+            >
+              Browse Files
+            </button>
+
+            {/* Format badges */}
+            <div className="flex flex-wrap justify-center gap-2 mt-5">
+              {FORMAT_BADGES.map((fmt) => {
+                const Icon = fmt.icon;
+                return (
+                  <span key={fmt.label} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/[0.03] border border-white/[0.04]">
+                    <Icon className="w-3 h-3" style={{ color: fmt.color }} />
+                    <span className="text-[10px] text-[#94A3B8] font-medium">{fmt.label}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          /* ── Selected file preview ── */
+          <div className="p-5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {getFileIcon(selectedFile.name)}
-                <div className="text-left">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {selectedFile.name}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {formatFileSize(selectedFile.size)}
-                  </p>
+              <div className="flex items-center gap-3 min-w-0">
+                {(() => {
+                  const Icon = getFileIcon(selectedFile.name);
+                  return (
+                    <div className="w-10 h-10 rounded-xl bg-[#22C7FF]/10 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-5 h-5 text-[#22C7FF]" />
+                    </div>
+                  );
+                })()}
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{selectedFile.name}</p>
+                  <p className="text-xs text-[#64748B]">{formatFileSize(selectedFile.size)}</p>
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={handleClear}
                 disabled={isUploading}
+                className="p-2 rounded-lg text-[#64748B] hover:text-white hover:bg-white/[0.05] transition-all disabled:opacity-50"
                 aria-label="Remove file"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </Button>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Upload Progress ── */}
+      {isUploading && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-5"
+        >
+          {/* Stage indicators */}
+          <div className="flex items-center gap-3 mb-4">
+            {UPLOAD_STAGES.map((st, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <span className={`text-sm transition-all ${i <= currentStage ? '' : 'opacity-30 grayscale'}`}>
+                  {st.emoji}
+                </span>
+                {i < UPLOAD_STAGES.length - 1 && (
+                  <div className={`w-6 h-px ${i < currentStage ? 'bg-[#22C7FF]' : 'bg-white/[0.08]'}`} />
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-between text-xs mb-2">
+            <span className="text-[#94A3B8] font-medium">
+              {UPLOAD_STAGES[currentStage].emoji} {UPLOAD_STAGES[currentStage].label}...
+            </span>
+            <span className="text-[#22C7FF] font-semibold">{uploadProgress}%</span>
+          </div>
+
+          {/* Progress bar */}
+          <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-gradient-to-r from-[#22C7FF] to-[#5B5FFF] rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${uploadProgress}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── Error ── */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500/[0.06] border border-red-500/[0.12]"
+        >
+          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <span className="text-sm text-red-400">{error}</span>
+        </motion.div>
+      )}
+
+      {/* ── Success Result ── */}
+      {uploadResult && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-[#111827]/60 backdrop-blur-sm border border-[#22C55E]/[0.15] rounded-2xl p-5 space-y-3"
+        >
+          <div className="flex items-center gap-2 text-[#22C55E]">
+            <CheckCircle2 className="w-4 h-4" />
+            <span className="text-sm font-medium">Knowledge added successfully!</span>
+          </div>
+
+          {/* Summary */}
+          {uploadResult.summary && (
+            <div>
+              <h4 className="text-xs font-semibold text-white mb-1">AI Summary</h4>
+              <p className="text-xs text-[#94A3B8] leading-relaxed">
+                {Array.isArray(uploadResult.summary)
+                  ? uploadResult.summary.join(' ')
+                  : uploadResult.summary}
+              </p>
             </div>
           )}
-        </div>
 
-        {/* Upload Progress */}
-        {isUploading && (
-          <div className="mt-4">
-            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
-              <span>Uploading...</span>
-              <span>{uploadProgress}%</span>
+          {/* Key Points */}
+          {uploadResult.keyPoints && uploadResult.keyPoints.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold text-white mb-1">Key Concepts</h4>
+              <ul className="space-y-1">
+                {uploadResult.keyPoints.map((point, index) => (
+                  <li key={index} className="flex items-start gap-1.5 text-xs text-[#94A3B8]">
+                    <span className="text-[#22C7FF] mt-0.5">•</span>
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div
-                className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Error Display */}
-        {error && (
-          <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-sm font-medium">{error}</span>
-            </div>
-          </div>
-        )}
+          <button
+            onClick={handleClear}
+            className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-sm text-[#94A3B8] hover:text-white hover:bg-white/[0.06] transition-all"
+          >
+            Upload Another File
+          </button>
+        </motion.div>
+      )}
 
-        {/* Upload Result / Summary Display */}
-        {uploadResult && (
-          <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-3">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-sm font-medium">Content processed successfully!</span>
-            </div>
-            
-            {/* Summary */}
-            {uploadResult.summary && (
-              <div className="mb-3">
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Summary</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {Array.isArray(uploadResult.summary) 
-                    ? uploadResult.summary.join(' ') 
-                    : uploadResult.summary}
-                </p>
-              </div>
-            )}
-
-            {/* Key Points */}
-            {uploadResult.keyPoints && uploadResult.keyPoints.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Key Points</h4>
-                <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                  {uploadResult.keyPoints.map((point, index) => (
-                    <li key={index}>{point}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Upload Button */}
-        {selectedFile && !isUploading && !uploadResult && (
-          <div className="mt-4">
-            <Button
-              onClick={handleUpload}
-              className="w-full"
-              disabled={isUploading}
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              Upload and Process
-            </Button>
-          </div>
-        )}
-
-        {/* Upload Another Button */}
-        {uploadResult && (
-          <div className="mt-4">
-            <Button
-              onClick={handleClear}
-              variant="outline"
-              className="w-full"
-            >
-              Upload Another File
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {/* ── Upload Button ── */}
+      {selectedFile && !isUploading && !uploadResult && (
+        <motion.button
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={handleUpload}
+          disabled={isUploading}
+          className="w-full py-3.5 rounded-2xl text-sm font-semibold text-white kn-gradient-btn flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          <Upload className="w-4 h-4" />
+          Upload &amp; Build Knowledge
+        </motion.button>
+      )}
+    </div>
   );
 }
 

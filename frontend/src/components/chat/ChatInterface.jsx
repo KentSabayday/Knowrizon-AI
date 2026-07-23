@@ -1,24 +1,44 @@
 import { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
+import {
+  Copy, ThumbsUp, ThumbsDown, RotateCcw, Sparkles, Send, FileText,
+  ArrowUp, Check,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE } from '../../lib/api';
 
 /**
- * ChatInterface component for TutorAgent interaction.
- * Displays conversation history and allows users to send messages.
- * Supports both streaming and non-streaming responses.
- * 
- * Requirements: 4.1, 4.3, 4.6, 2.5
+ * ChatInterface — Premium AI chat with Knowri personality.
+ *
+ * Preserves: ALL sendMessage, sendStreamingMessage, sendNonStreamingMessage,
+ *            loadConversation, SSE stream processing, abort controller,
+ *            handleSubmit, handleKeyPress, ReactMarkdown rendering.
+ *
+ * New: Welcome state with Knowri + suggestion chips, premium message bubbles,
+ *      message actions (copy), enhanced streaming indicator, glass input,
+ *      active knowledge context badges.
  */
-export function ChatInterface({ 
-  contentContext = [], 
+
+const SUGGESTIONS = [
+  { text: 'Explain my notes', emoji: '📝' },
+  { text: 'Summarize this PDF', emoji: '📄' },
+  { text: 'Generate a quiz', emoji: '📋' },
+  { text: 'Create flashcards', emoji: '🃏' },
+  { text: 'Teach me Calculus', emoji: '📐' },
+  { text: 'Help with my assignment', emoji: '✍️' },
+  { text: 'Find key formulas', emoji: '🔬' },
+  { text: 'Explain this code', emoji: '💻' },
+];
+
+export function ChatInterface({
+  contentContext = [],
   enableStreaming = true,
   conversationId: initialConversationId = null,
-  onConversationChange = null
+  onConversationChange = null,
+  uploadedContent = [],
 }) {
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -69,14 +89,14 @@ export function ChatInterface({
    */
   const loadConversation = async (convId) => {
     if (!token) return;
-    
+
     try {
       const response = await fetch(`${API_BASE}/chat/conversations/${convId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         const loadedMessages = (data.messages || []).map(msg => ({
@@ -118,7 +138,7 @@ export function ChatInterface({
 
     // Create placeholder for assistant message (for streaming)
     const assistantMessageId = `assistant-${Date.now()}`;
-    
+
     if (enableStreaming) {
       await sendStreamingMessage(content.trim(), assistantMessageId);
     } else {
@@ -132,7 +152,7 @@ export function ChatInterface({
   const sendStreamingMessage = async (content, assistantMessageId) => {
     try {
       setIsStreaming(true);
-      
+
       // Add empty assistant message that will be updated with streamed content
       const assistantMessage = {
         id: assistantMessageId,
@@ -175,31 +195,31 @@ export function ChatInterface({
 
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
-        
+
         buffer += decoder.decode(value, { stream: true });
-        
+
         // Process complete SSE events from buffer
         const lines = buffer.split('\n');
         buffer = lines.pop() || ''; // Keep incomplete line in buffer
-        
+
         for (const line of lines) {
           if (line.startsWith('event: ')) {
             continue;
           }
-          
+
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
-            
+
             try {
               // Try to parse as JSON first (for done/error events)
               const parsed = JSON.parse(data);
-              
+
               if (parsed.error) {
                 throw new Error(parsed.error);
               }
-              
+
               if (parsed.messageId) {
                 // Done event - update conversation ID if new
                 if (parsed.conversationId && !conversationId) {
@@ -223,9 +243,9 @@ export function ChatInterface({
                 .replace(/\\r/g, '\r')
                 .replace(/\\"/g, '"')
                 .replace(/\\\\/g, '\\');
-              
+
               fullContent += chunk;
-              
+
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantMessageId
@@ -251,7 +271,7 @@ export function ChatInterface({
       if (err.name === 'AbortError') {
         return;
       }
-      
+
       setError(err.message || 'Failed to send message. Please try again.');
       setMessages((prev) => prev.filter((m) => m.id !== assistantMessageId));
     } finally {
@@ -348,59 +368,76 @@ export function ChatInterface({
     });
   };
 
-  return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-900">
-      {/* Chat Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Chat with TutorAgent
-        </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Ask questions and get explanations
-        </p>
-      </div>
+  const userInitials = (user?.name || 'U').charAt(0).toUpperCase();
 
+  return (
+    <div className="flex flex-col h-full bg-transparent">
       {/* Messages Container */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-5">
+        {/* Welcome State */}
         {messages.length === 0 && !isLoading && (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 h-16 mb-4 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-              <svg
-                className="w-8 h-8 text-indigo-600 dark:text-indigo-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              Start a conversation
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 max-w-sm">
-              Ask me anything about your studies. I'm here to help you learn and understand concepts better.
-            </p>
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="space-y-5 max-w-lg"
+            >
+              {/* Knowri avatar */}
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#22C7FF]/20 to-[#5B5FFF]/20 border border-white/[0.08] flex items-center justify-center mx-auto">
+                <Sparkles className="w-7 h-7 text-[#22C7FF]" />
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  Hello! I&apos;m Knowri 👋
+                </h3>
+                <p className="text-sm text-[#94A3B8] leading-relaxed">
+                  I&apos;m your AI Study Companion. Upload learning materials or ask me anything.
+                </p>
+              </div>
+
+              {/* Capabilities */}
+              <div className="flex flex-wrap justify-center gap-2">
+                {['PDFs', 'Documents', 'Videos', 'Lectures', 'Code', 'Research'].map((cap) => (
+                  <span key={cap} className="text-[11px] px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.06] text-[#94A3B8]">
+                    ✓ {cap}
+                  </span>
+                ))}
+              </div>
+
+              {/* Suggestion chips */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s.text}
+                    onClick={() => { setInputValue(s.text); inputRef.current?.focus(); }}
+                    className="group flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-[#22C7FF]/20 hover:bg-[#22C7FF]/[0.04] transition-all text-left"
+                  >
+                    <span className="text-sm">{s.emoji}</span>
+                    <span className="text-[11px] text-[#94A3B8] group-hover:text-white transition-colors leading-tight">{s.text}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
           </div>
         )}
 
+        {/* Messages */}
         {messages.map((message) => (
           <MessageBubble
             key={message.id}
             message={message}
             formatTime={formatTime}
+            userInitials={userInitials}
           />
         ))}
 
-        {isLoading && !isStreaming && <LoadingIndicator />}
+        {isLoading && !isStreaming && <StreamingIndicator />}
 
         {error && (
           <div className="flex justify-center">
-            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg text-sm">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2.5 rounded-xl text-sm">
               {error}
             </div>
           </div>
@@ -409,36 +446,50 @@ export function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-4">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
+      {/* Active Knowledge Context */}
+      {uploadedContent.length > 0 && (
+        <div className="flex-shrink-0 px-5 pb-1">
+          <div className="flex items-center gap-2 text-[10px] text-[#475569]">
+            <FileText className="w-3 h-3" />
+            <span>Using:</span>
+            {uploadedContent.slice(0, 3).map((c, i) => (
+              <span key={c.id || i} className="px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.04] text-[#94A3B8] truncate max-w-[120px]">
+                {c.title || c.filename}
+              </span>
+            ))}
+            {uploadedContent.length > 3 && (
+              <span className="text-[#64748B]">+{uploadedContent.length - 3} more</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Glass Input Area */}
+      <div className="flex-shrink-0 p-4 pt-2">
+        <form onSubmit={handleSubmit} className="relative">
+          <input
             ref={inputRef}
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Type your question..."
+            placeholder="Ask Knowri anything about your learning materials..."
             disabled={isLoading}
-            className="flex-1"
+            className="w-full bg-[#111827]/60 backdrop-blur-sm border border-white/[0.08] rounded-2xl pl-5 pr-14 py-4 text-sm text-white placeholder:text-[#475569] outline-none focus:border-[#22C7FF]/30 focus:ring-1 focus:ring-[#22C7FF]/15 transition-all disabled:opacity-50"
             aria-label="Message input"
           />
-          <Button
+          <button
             type="submit"
             disabled={isLoading || !inputValue.trim()}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-gradient-to-r from-[#22C7FF] to-[#5B5FFF] text-white hover:shadow-lg hover:shadow-[#22C7FF]/20"
             aria-label="Send message"
           >
             {isLoading ? (
-              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
+              <ArrowUp className="w-4 h-4" />
             )}
-          </Button>
+          </button>
         </form>
       </div>
     </div>
@@ -447,139 +498,209 @@ export function ChatInterface({
 
 
 /**
- * Individual message bubble component
+ * Premium message bubble
  */
-function MessageBubble({ message, formatTime }) {
+function MessageBubble({ message, formatTime, userInitials }) {
   const isUser = message.role === 'user';
-  const isStreaming = message.isStreaming;
+  const isStreamingMsg = message.isStreaming;
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* fallback: ignore */ }
+  };
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
       data-testid={`message-${message.role}`}
     >
-      <div
-        className={`max-w-[80%] rounded-lg px-4 py-2 ${
+      <div className={`flex items-start gap-2.5 ${isUser ? 'flex-row-reverse' : ''} max-w-[80%]`}>
+        {/* Avatar */}
+        <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
           isUser
-            ? 'bg-indigo-600 text-white'
-            : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
-        }`}
-      >
-        <div
-          className={`text-xs font-medium mb-1 ${
-            isUser ? 'text-indigo-200' : 'text-gray-500 dark:text-gray-400'
-          }`}
-        >
-          {isUser ? 'You' : 'TutorAgent'}
-          {isStreaming && (
-            <span className="ml-2 inline-flex items-center">
-              <span className="animate-pulse">typing</span>
-              <span className="ml-1 flex space-x-0.5">
-                <span className="w-1 h-1 bg-indigo-500 dark:bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1 h-1 bg-indigo-500 dark:bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1 h-1 bg-indigo-500 dark:bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </span>
-            </span>
+            ? 'bg-gradient-to-br from-[#22C7FF] to-[#5B5FFF]'
+            : 'bg-gradient-to-br from-[#22C7FF]/20 to-[#5B5FFF]/20 border border-white/[0.06]'
+        }`}>
+          {isUser ? (
+            <span className="text-[10px] font-bold text-white">{userInitials}</span>
+          ) : (
+            <Sparkles className="w-3.5 h-3.5 text-[#22C7FF]" />
           )}
         </div>
 
-        <div className="break-words">
-          {isUser ? (
-            <div className="whitespace-pre-wrap">{message.content}</div>
-          ) : (
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <ReactMarkdown
-                components={{
-                  h1: ({ children }) => (
-                    <h2 className="text-lg font-bold mt-4 mb-2 text-gray-900 dark:text-white border-b border-gray-300 dark:border-gray-600 pb-1">{children}</h2>
-                  ),
-                  h2: ({ children }) => (
-                    <h3 className="text-base font-bold mt-3 mb-2 text-gray-900 dark:text-white">{children}</h3>
-                  ),
-                  h3: ({ children }) => (
-                    <h4 className="text-sm font-semibold mt-2 mb-1 text-gray-900 dark:text-white">{children}</h4>
-                  ),
-                  p: ({ children }) => (
-                    <p className="mb-2 text-gray-800 dark:text-gray-200 leading-relaxed">{children}</p>
-                  ),
-                  ul: ({ children }) => (
-                    <ul className="list-disc list-inside mb-2 space-y-1 text-gray-800 dark:text-gray-200">{children}</ul>
-                  ),
-                  ol: ({ children }) => (
-                    <ol className="list-decimal list-inside mb-2 space-y-1 text-gray-800 dark:text-gray-200">{children}</ol>
-                  ),
-                  li: ({ children }) => (
-                    <li className="text-gray-800 dark:text-gray-200">{children}</li>
-                  ),
-                  strong: ({ children }) => (
-                    <strong className="font-semibold text-gray-900 dark:text-white">{children}</strong>
-                  ),
-                  em: ({ children }) => (
-                    <em className="italic text-gray-800 dark:text-gray-200">{children}</em>
-                  ),
-                  a: ({ href, children }) => (
-                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">{children}</a>
-                  ),
-                  code: ({ inline, children }) => {
-                    if (inline) {
-                      return <code className="bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>;
-                    }
-                    return (
-                      <pre className="bg-gray-800 dark:bg-gray-900 text-gray-100 p-3 rounded-lg overflow-x-auto my-2 border border-gray-300 dark:border-gray-600">
-                        <code className="text-sm font-mono text-gray-100">{children}</code>
-                      </pre>
-                    );
-                  },
-                  pre: ({ children }) => <>{children}</>,
-                  table: ({ children }) => (
-                    <div className="my-3 overflow-x-auto">
-                      <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">{children}</table>
-                    </div>
-                  ),
-                  thead: ({ children }) => <thead className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">{children}</thead>,
-                  tbody: ({ children }) => <tbody className="text-gray-800 dark:text-gray-200">{children}</tbody>,
-                  tr: ({ children }) => <tr className="border-b border-gray-300 dark:border-gray-600">{children}</tr>,
-                  th: ({ children }) => <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">{children}</th>,
-                  td: ({ children }) => <td className="px-3 py-2 text-sm text-gray-800 dark:text-gray-200">{children}</td>,
-                  blockquote: ({ children }) => (
-                    <blockquote className="border-l-4 border-indigo-500 pl-3 my-2 italic text-gray-700 dark:text-gray-300">{children}</blockquote>
-                  ),
-                  hr: () => <hr className="my-3 border-gray-300 dark:border-gray-600" />,
-                }}
+        {/* Bubble */}
+        <div className="space-y-1">
+          <div className={`rounded-2xl px-4 py-3 ${
+            isUser
+              ? 'bg-gradient-to-r from-[#22C7FF] to-[#5B5FFF] text-white rounded-tr-sm'
+              : 'bg-[#111827]/70 backdrop-blur-sm border border-white/[0.06] text-white rounded-tl-sm'
+          }`}>
+            {/* Sender label */}
+            <div className={`text-[10px] font-medium mb-1 ${
+              isUser ? 'text-white/70' : 'text-[#22C7FF]'
+            }`}>
+              {isUser ? 'You' : 'Knowri'}
+              {isStreamingMsg && (
+                <span className="ml-2 text-[#94A3B8]">
+                  typing<span className="dash-cursor ml-0.5">|</span>
+                </span>
+              )}
+            </div>
+
+            {/* Content */}
+            <div className="break-words">
+              {isUser ? (
+                <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+              ) : (
+                <div className="prose prose-sm prose-invert max-w-none">
+                  <ReactMarkdown
+                    components={{
+                      h1: ({ children }) => (
+                        <h2 className="text-lg font-bold mt-4 mb-2 text-white border-b border-white/[0.08] pb-1">{children}</h2>
+                      ),
+                      h2: ({ children }) => (
+                        <h3 className="text-base font-bold mt-3 mb-2 text-white">{children}</h3>
+                      ),
+                      h3: ({ children }) => (
+                        <h4 className="text-sm font-semibold mt-2 mb-1 text-white">{children}</h4>
+                      ),
+                      p: ({ children }) => (
+                        <p className="mb-2 text-[#E2E8F0] leading-relaxed text-sm">{children}</p>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-inside mb-2 space-y-1 text-[#E2E8F0]">{children}</ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal list-inside mb-2 space-y-1 text-[#E2E8F0]">{children}</ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className="text-[#E2E8F0] text-sm">{children}</li>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-semibold text-white">{children}</strong>
+                      ),
+                      em: ({ children }) => (
+                        <em className="italic text-[#CBD5E1]">{children}</em>
+                      ),
+                      a: ({ href, children }) => (
+                        <a href={href} target="_blank" rel="noopener noreferrer" className="text-[#22C7FF] hover:underline">{children}</a>
+                      ),
+                      code: ({ inline, children }) => {
+                        if (inline) {
+                          return <code className="bg-white/[0.08] text-[#22C7FF] px-1.5 py-0.5 rounded text-[13px] font-mono">{children}</code>;
+                        }
+                        return (
+                          <pre className="bg-[#0B1220] text-[#E2E8F0] p-3.5 rounded-xl overflow-x-auto my-2 border border-white/[0.06]">
+                            <code className="text-[13px] font-mono">{children}</code>
+                          </pre>
+                        );
+                      },
+                      pre: ({ children }) => <>{children}</>,
+                      table: ({ children }) => (
+                        <div className="my-3 overflow-x-auto">
+                          <table className="min-w-full border-collapse border border-white/[0.08]">{children}</table>
+                        </div>
+                      ),
+                      thead: ({ children }) => <thead className="bg-white/[0.04] text-white">{children}</thead>,
+                      tbody: ({ children }) => <tbody className="text-[#E2E8F0]">{children}</tbody>,
+                      tr: ({ children }) => <tr className="border-b border-white/[0.06]">{children}</tr>,
+                      th: ({ children }) => <th className="px-3 py-2 text-left text-sm font-semibold text-white">{children}</th>,
+                      td: ({ children }) => <td className="px-3 py-2 text-sm text-[#CBD5E1]">{children}</td>,
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-4 border-[#22C7FF]/40 pl-3 my-2 italic text-[#94A3B8]">{children}</blockquote>
+                      ),
+                      hr: () => <hr className="my-3 border-white/[0.06]" />,
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
+                </div>
+              )}
+              {isStreamingMsg && !message.content && (
+                <span className="text-[#64748B] italic text-sm">Thinking...</span>
+              )}
+            </div>
+
+            {/* Timestamp */}
+            {!isStreamingMsg && (
+              <div className={`text-[10px] mt-1.5 ${isUser ? 'text-white/50' : 'text-[#475569]'}`}>
+                {formatTime(message.timestamp)}
+              </div>
+            )}
+          </div>
+
+          {/* Message actions (AI messages only) */}
+          {!isUser && !isStreamingMsg && message.content && (
+            <div className="flex items-center gap-0.5 ml-1">
+              <button
+                onClick={handleCopy}
+                className="p-1.5 rounded-lg text-[#475569] hover:text-white hover:bg-white/[0.05] transition-all"
+                title="Copy"
               >
-                {message.content}
-              </ReactMarkdown>
+                {copied ? <Check className="w-3.5 h-3.5 text-[#22C55E]" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+              <button className="p-1.5 rounded-lg text-[#475569] hover:text-white hover:bg-white/[0.05] transition-all" title="Like">
+                <ThumbsUp className="w-3.5 h-3.5" />
+              </button>
+              <button className="p-1.5 rounded-lg text-[#475569] hover:text-white hover:bg-white/[0.05] transition-all" title="Dislike">
+                <ThumbsDown className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
-          {isStreaming && !message.content && (
-            <span className="text-gray-400 dark:text-gray-500 italic">Thinking...</span>
-          )}
         </div>
-
-        {!isStreaming && (
-          <div className={`text-xs mt-1 ${isUser ? 'text-indigo-200' : 'text-gray-400 dark:text-gray-500'}`}>
-            {formatTime(message.timestamp)}
-          </div>
-        )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
+
 /**
- * Loading indicator component
+ * Streaming stage indicator with rotating messages
  */
-function LoadingIndicator() {
+function StreamingIndicator() {
+  const [stage, setStage] = useState(0);
+  const stages = [
+    'Knowri is reading your files...',
+    'Searching knowledge library...',
+    'Understanding context...',
+    'Building explanation...',
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setStage((s) => (s + 1) % stages.length);
+    }, 2200);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div className="flex justify-start" data-testid="loading-indicator">
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-3">
-        <div className="flex items-center space-x-2">
-          <div className="flex space-x-1">
-            <div className="w-2 h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-2 h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-2 h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+      <div className="flex items-start gap-2.5">
+        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#22C7FF]/20 to-[#5B5FFF]/20 border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+          <Sparkles className="w-3.5 h-3.5 text-[#22C7FF] animate-pulse" />
+        </div>
+        <div className="bg-[#111827]/70 backdrop-blur-sm border border-white/[0.06] rounded-2xl rounded-tl-sm px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <motion.span
+              key={stage}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-sm text-[#94A3B8]"
+            >
+              {stages[stage]}
+            </motion.span>
+            <span className="flex gap-1">
+              <span className="w-1.5 h-1.5 bg-[#22C7FF] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 bg-[#22C7FF] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 bg-[#22C7FF] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </span>
           </div>
-          <span className="text-sm text-gray-500 dark:text-gray-400">TutorAgent is thinking...</span>
         </div>
       </div>
     </div>
