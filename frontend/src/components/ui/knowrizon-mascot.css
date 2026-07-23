@@ -1,0 +1,352 @@
+/* ================================================================
+   KNOWRI — Knowrizon AI Mascot | Animation System v1.0
+   Premium CSS/SVG animated character with state machine
+   Brand: #4F8BFF | #2D7CFF | #6BA3FF | #FFFFFF
+   ================================================================ */
+
+/* === Container === */
+.knowri-container {
+  display: inline-block;
+  cursor: pointer;
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, opacity;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.knowri-container.knowri-visible {
+  animation: knowriEntrance 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.knowri-container.knowri-hovered {
+  transform: scale(1.03);
+}
+
+.knowri-container.knowri-bounce {
+  animation: knowriBounce 0.4s ease forwards;
+  opacity: 1;
+}
+
+/* === Entrance: Opacity → Float Up → Glow → Overshoot → Settle === */
+@keyframes knowriEntrance {
+  0%   { opacity: 0; transform: translateY(50px) scale(0.85); }
+  40%  { opacity: 1; }
+  70%  { transform: translateY(-8px) scale(1.03); }
+  85%  { transform: translateY(3px) scale(0.99); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* === Core Continuous Animations === */
+
+@keyframes knowriFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+@keyframes knowriBreathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.012); }
+}
+
+@keyframes knowriSway {
+  0%, 100% { transform: rotate(0deg); }
+  30%      { transform: rotate(1.8deg); }
+  70%      { transform: rotate(-1.8deg); }
+}
+
+@keyframes knowriAntennaGlow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.35); }
+}
+
+@keyframes knowriIndicator {
+  0%, 100% { opacity: 0.65; }
+  50%      { opacity: 1; }
+}
+
+@keyframes knowriBaseRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes knowriBaseGlow {
+  0%, 100% { opacity: 0.12; }
+  50%      { opacity: 0.28; }
+}
+
+@keyframes knowriScan {
+  0%   { transform: translateY(0); opacity: 0; }
+  10%  { opacity: 0.8; }
+  90%  { opacity: 0.8; }
+  100% { transform: translateY(70px); opacity: 0; }
+}
+
+@keyframes knowriShadow {
+  0%, 100% { transform: scaleX(1); opacity: 0.12; }
+  50%      { transform: scaleX(0.8); opacity: 0.2; }
+}
+
+@keyframes knowriAmbient {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+/* === Interactive Animations === */
+
+@keyframes knowriBlink {
+  0%, 100% { transform: scaleY(1); }
+  40%, 60% { transform: scaleY(0.05); }
+}
+
+@keyframes knowriWave {
+  0%   { transform: rotate(0deg); }
+  12%  { transform: rotate(-55deg); }
+  24%  { transform: rotate(-35deg); }
+  36%  { transform: rotate(-55deg); }
+  48%  { transform: rotate(-35deg); }
+  60%  { transform: rotate(-50deg); }
+  72%  { transform: rotate(-38deg); }
+  85%  { transform: rotate(-18deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes knowriBounce {
+  0%, 100% { transform: scale(1); }
+  25%      { transform: scale(0.94); }
+  50%      { transform: scale(1.06); }
+  75%      { transform: scale(0.98); }
+}
+
+/* === State: Thinking — Orbit Particles === */
+
+@keyframes knowriOrbit1 {
+  from { transform: rotate(0deg) translateX(80px); }
+  to   { transform: rotate(360deg) translateX(80px); }
+}
+
+@keyframes knowriOrbit2 {
+  from { transform: rotate(120deg) translateX(65px); }
+  to   { transform: rotate(480deg) translateX(65px); }
+}
+
+@keyframes knowriOrbit3 {
+  from { transform: rotate(240deg) translateX(90px); }
+  to   { transform: rotate(600deg) translateX(90px); }
+}
+
+@keyframes knowriHaloRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* === Element Animation Assignments === */
+
+.knowri-float-group {
+  animation: knowriFloat 3.5s ease-in-out infinite;
+}
+
+.knowri-body-group {
+  transform-origin: 150px 212px;
+  animation: knowriBreathe 4.5s ease-in-out infinite;
+}
+
+.knowri-sway-group {
+  transform-origin: 150px 148px;
+  animation: knowriSway 7s ease-in-out infinite;
+}
+
+.knowri-antenna-glow {
+  transform-origin: 150px 14px;
+  animation: knowriAntennaGlow 3s ease-in-out infinite;
+}
+
+.knowri-indicator {
+  animation: knowriIndicator 2s ease-in-out infinite;
+}
+
+.knowri-base-ring {
+  transform-origin: 150px 290px;
+  animation: knowriBaseRotate 15s linear infinite;
+}
+
+.knowri-base-glow-el {
+  animation: knowriBaseGlow 3.5s ease-in-out infinite;
+}
+
+.knowri-scanline {
+  animation: knowriScan 5s ease-in-out infinite;
+}
+
+.knowri-ground-shadow {
+  transform-origin: 150px 355px;
+  animation: knowriShadow 3.5s ease-in-out infinite;
+}
+
+.knowri-ambient-glow {
+  animation: knowriAmbient 4s ease-in-out infinite;
+}
+
+/* --- Eyes: Blink --- */
+.knowri-eye-left  { transform-origin: 122px 82px; }
+.knowri-eye-right { transform-origin: 178px 82px; }
+
+.knowri-blinking .knowri-eye-left,
+.knowri-blinking .knowri-eye-right {
+  animation: knowriBlink 0.18s ease-in-out;
+}
+
+/* --- Right arm: Wave --- */
+.knowri-right-arm { transform-origin: 212px 188px; }
+
+.knowri-waving .knowri-right-arm {
+  animation: knowriWave 2s ease-in-out;
+}
+
+/* --- Mouth smooth transition --- */
+.knowri-mouth {
+  transition: d 0.3s ease;
+}
+
+/* === State: Thinking === */
+
+.knowri-thinking-particles circle {
+  transform-origin: 150px 95px;
+  opacity: 0;
+}
+
+.knowri-state-thinking .knowri-thinking-particles .knowri-p1,
+.knowri-state-searching .knowri-thinking-particles .knowri-p1,
+.knowri-state-loading .knowri-thinking-particles .knowri-p1 {
+  animation: knowriOrbit1 3s linear infinite;
+  opacity: 0.8;
+}
+
+.knowri-state-thinking .knowri-thinking-particles .knowri-p2,
+.knowri-state-searching .knowri-thinking-particles .knowri-p2,
+.knowri-state-loading .knowri-thinking-particles .knowri-p2 {
+  animation: knowriOrbit2 4.5s linear infinite;
+  opacity: 0.6;
+}
+
+.knowri-state-thinking .knowri-thinking-particles .knowri-p3,
+.knowri-state-searching .knowri-thinking-particles .knowri-p3,
+.knowri-state-loading .knowri-thinking-particles .knowri-p3 {
+  animation: knowriOrbit3 3.5s linear infinite reverse;
+  opacity: 0.7;
+}
+
+.knowri-halo { opacity: 0; }
+
+.knowri-state-thinking .knowri-halo,
+.knowri-state-searching .knowri-halo,
+.knowri-state-loading .knowri-halo {
+  opacity: 0.35;
+  transform-origin: 150px 42px;
+  animation: knowriHaloRotate 8s linear infinite;
+}
+
+.knowri-state-thinking .knowri-ambient-glow,
+.knowri-state-searching .knowri-ambient-glow,
+.knowri-state-loading .knowri-ambient-glow {
+  animation: knowriAmbient 2s ease-in-out infinite;
+}
+
+/* === State: Sleep === */
+
+.knowri-state-sleep .knowri-eye-left,
+.knowri-state-sleep .knowri-eye-right {
+  transform: scaleY(0.05);
+  transition: transform 0.4s ease;
+}
+
+.knowri-state-sleep .knowri-float-group {
+  animation-duration: 6s;
+}
+
+.knowri-state-sleep .knowri-sway-group {
+  animation: none;
+}
+
+.knowri-state-sleep .knowri-scanline {
+  animation: none;
+  opacity: 0;
+}
+
+/* === State: Listening — lean forward === */
+
+.knowri-state-listening .knowri-sway-group {
+  transform: rotate(-2deg) translateY(3px);
+  animation: none;
+  transition: transform 0.4s ease;
+}
+
+/* === State: Success/Celebrating — intensified glow === */
+
+.knowri-state-success .knowri-ambient-glow,
+.knowri-state-celebrating .knowri-ambient-glow {
+  animation: knowriAmbient 1.5s ease-in-out infinite;
+}
+
+.knowri-state-success .knowri-antenna-glow,
+.knowri-state-celebrating .knowri-antenna-glow {
+  animation: knowriAntennaGlow 1.5s ease-in-out infinite;
+}
+
+/* === Paused (tab hidden) === */
+
+.knowri-paused .knowri-float-group,
+.knowri-paused .knowri-body-group,
+.knowri-paused .knowri-sway-group,
+.knowri-paused .knowri-scanline,
+.knowri-paused .knowri-antenna-glow,
+.knowri-paused .knowri-indicator,
+.knowri-paused .knowri-base-ring,
+.knowri-paused .knowri-base-glow-el,
+.knowri-paused .knowri-ground-shadow,
+.knowri-paused .knowri-ambient-glow {
+  animation-play-state: paused;
+}
+
+/* === Dark Mode Enhancements === */
+
+:where(.dark, .dark *) .knowri-ambient-glow {
+  opacity: 0.85;
+}
+
+:where(.dark, .dark *) .knowri-ground-shadow {
+  opacity: 0.22;
+}
+
+/* === Accessibility: Reduced Motion === */
+
+@media (prefers-reduced-motion: reduce) {
+  .knowri-container,
+  .knowri-container.knowri-visible {
+    animation: none !important;
+    opacity: 1;
+  }
+
+  .knowri-float-group,
+  .knowri-body-group,
+  .knowri-sway-group,
+  .knowri-scanline,
+  .knowri-antenna-glow,
+  .knowri-indicator,
+  .knowri-base-ring,
+  .knowri-base-glow-el,
+  .knowri-ground-shadow,
+  .knowri-ambient-glow,
+  .knowri-blinking .knowri-eye-left,
+  .knowri-blinking .knowri-eye-right,
+  .knowri-waving .knowri-right-arm,
+  .knowri-thinking-particles circle,
+  .knowri-halo {
+    animation: none !important;
+  }
+
+  .knowri-container.knowri-hovered,
+  .knowri-container.knowri-bounce {
+    transform: none !important;
+  }
+}

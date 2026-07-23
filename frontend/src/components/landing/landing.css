@@ -1,0 +1,102 @@
+/* ================================================================
+   Knowrizon Landing — Custom Animations & Design System
+   Brand: #22C7FF | #5B5FFF | #0B1220
+   ================================================================ */
+
+/* === Background Constellation Blobs === */
+@keyframes kn-blob-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+}
+@keyframes kn-blob-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-40px, 30px) scale(1.15); }
+  66% { transform: translate(25px, -40px) scale(0.85); }
+}
+@keyframes kn-blob-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, 40px) scale(0.95); }
+  66% { transform: translate(-30px, -20px) scale(1.1); }
+}
+
+.kn-blob-1 { animation: kn-blob-1 20s ease-in-out infinite; will-change: transform; }
+.kn-blob-2 { animation: kn-blob-2 25s ease-in-out infinite; will-change: transform; }
+.kn-blob-3 { animation: kn-blob-3 22s ease-in-out infinite; will-change: transform; }
+
+/* === Floating Icon Hover === */
+@keyframes kn-float-icon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.kn-float-icon { animation: kn-float-icon 3.5s ease-in-out infinite; }
+
+/* === Typing Indicator Dots === */
+@keyframes kn-typing-dot {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-4px); }
+}
+.kn-typing-dot { animation: kn-typing-dot 1.2s ease-in-out infinite; }
+
+/* === Glow Pulse (Hero backdrop) === */
+@keyframes kn-glow-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.65; transform: scale(1.06); }
+}
+.kn-glow-pulse { animation: kn-glow-pulse 4s ease-in-out infinite; }
+
+/* === Gradient Text === */
+.kn-gradient-text {
+  background: linear-gradient(135deg, #22C7FF, #5B5FFF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* === Gradient Button === */
+.kn-gradient-btn {
+  background: linear-gradient(135deg, #22C7FF, #5B5FFF);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.kn-gradient-btn:hover {
+  box-shadow: 0 4px 25px rgba(34, 199, 255, 0.3);
+  transform: translateY(-1px);
+}
+.kn-gradient-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* === Glass Card === */
+.kn-glass {
+  background: rgba(17, 24, 39, 0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.kn-glass-hover {
+  transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.kn-glass-hover:hover {
+  background: rgba(17, 24, 39, 0.65);
+  border-color: rgba(34, 199, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(34, 199, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+/* === Scrollbar Styling === */
+.kn-scrollbar::-webkit-scrollbar { width: 4px; }
+.kn-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.kn-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+/* === Reduced Motion === */
+@media (prefers-reduced-motion: reduce) {
+  .kn-blob-1, .kn-blob-2, .kn-blob-3,
+  .kn-float-icon, .kn-typing-dot, .kn-glow-pulse {
+    animation: none !important;
+  }
+  .kn-glass-hover:hover,
+  .kn-gradient-btn:hover {
+    transform: none !important;
+  }
+}

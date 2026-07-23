@@ -63,3 +63,4 @@ frontend/dist/
 .vercel/
 
 .vercel
+.env*
