@@ -315,9 +315,16 @@ export function ChatInterface({
   const inputRef = useRef(null);
   const abortControllerRef = useRef(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  const scrollContainerRef = useRef(null);
+
+  // Auto-scroll only when the user is near the bottom (within 150px)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+    if (isNearBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   // Focus input on mount
@@ -587,7 +594,7 @@ export function ChatInterface({
   return (
     <div className="flex flex-col h-full bg-transparent">
       {/* Messages Container */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-5">
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-5">
         <div className="space-y-5">
 
           {/* ── Welcome State ── */}
