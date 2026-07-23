@@ -1,11 +1,11 @@
-import { Sun, Moon, User } from 'lucide-react'
+import { Sun, Moon, User, LogOut } from 'lucide-react'
 import { useTheme } from '../../context/ThemeContext'
 import { useAuth } from '../../context/AuthContext'
 import { Button } from '../ui'
 
 export function TopBar({ title = 'Knowrizon' }) {
   const { theme, toggleTheme } = useTheme()
-  const { user, isAnonymous } = useAuth()
+  const { user, isAnonymous, logout } = useAuth()
 
   const displayName = isAnonymous ? 'Guest' : (user?.name || 'User')
 
@@ -33,13 +33,37 @@ export function TopBar({ title = 'Knowrizon' }) {
         </Button>
 
         {/* User profile area */}
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700">
-          <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+          isAnonymous
+            ? 'bg-amber-100 dark:bg-amber-900/30'
+            : 'bg-gray-100 dark:bg-gray-700'
+        }`}>
+          <User className={`w-5 h-5 ${
+            isAnonymous
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-gray-600 dark:text-gray-400'
+          }`} />
+          <span className={`text-sm font-medium ${
+            isAnonymous
+              ? 'text-amber-700 dark:text-amber-300'
+              : 'text-gray-700 dark:text-gray-300'
+          }`}>
             {displayName}
           </span>
         </div>
+
+        {/* Logout / Exit button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={logout}
+          aria-label={isAnonymous ? 'Exit guest session' : 'Logout'}
+          title={isAnonymous ? 'Exit guest session' : 'Logout'}
+        >
+          <LogOut className="w-5 h-5" />
+        </Button>
       </div>
     </header>
   )
 }
+

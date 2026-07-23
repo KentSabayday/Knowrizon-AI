@@ -250,9 +250,6 @@ export function FriendsProvider({ children }) {
 
 export function useFriends() {
   const context = useContext(FriendsContext);
-  if (!context) {
-    throw new Error('useFriends must be used within a FriendsProvider');
-  }
   return context;
 }
 

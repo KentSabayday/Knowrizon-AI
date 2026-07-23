@@ -1,7 +1,46 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { API_BASE } from '../lib/api';
 
 const AuthContext = createContext(null);
+
+/**
+ * Storage abstraction: registered users use localStorage (persists across tabs/sessions),
+ * anonymous users use sessionStorage (destroyed when the tab closes).
+ */
+const STORAGE_KEYS = {
+  token: 'knowrizon_token',
+  user: 'knowrizon_user',
+  anonymous: 'knowrizon_anonymous',
+};
+
+function getStorage(anonymous) {
+  return anonymous ? sessionStorage : localStorage;
+}
+
+function readStoredSession() {
+  // Try localStorage first (registered users)
+  let store = localStorage;
+  let storedToken = store.getItem(STORAGE_KEYS.token);
+  let storedUser = store.getItem(STORAGE_KEYS.user);
+  let storedIsAnonymous = store.getItem(STORAGE_KEYS.anonymous);
+
+  // Fall back to sessionStorage (anonymous users)
+  if (!storedToken || !storedUser) {
+    store = sessionStorage;
+    storedToken = store.getItem(STORAGE_KEYS.token);
+    storedUser = store.getItem(STORAGE_KEYS.user);
+    storedIsAnonymous = store.getItem(STORAGE_KEYS.anonymous);
+  }
+
+  return { storedToken, storedUser, storedIsAnonymous };
+}
+
+function clearAllStorages() {
+  Object.values(STORAGE_KEYS).forEach((key) => {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  });
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -10,39 +49,34 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Refs to access current state inside event listeners without stale closures
+  const tokenRef = useRef(token);
+  const isAnonymousRef = useRef(isAnonymous);
+  useEffect(() => { tokenRef.current = token; }, [token]);
+  useEffect(() => { isAnonymousRef.current = isAnonymous; }, [isAnonymous]);
+
   // Check for existing session on mount and validate token
   useEffect(() => {
     const validateSession = async () => {
-      const storedToken = localStorage.getItem('knowrizon_token');
-      const storedUser = localStorage.getItem('knowrizon_user');
-      const storedIsAnonymous = localStorage.getItem('knowrizon_anonymous');
+      const { storedToken, storedUser, storedIsAnonymous } = readStoredSession();
 
       if (storedToken && storedUser) {
-        // Validate token by making a test API call
         try {
           const response = await fetch(`${API_BASE}/auth/validate`, {
             headers: { 'Authorization': `Bearer ${storedToken}` }
           });
 
           if (response.ok) {
-            // Token is valid
             setToken(storedToken);
             setUser(JSON.parse(storedUser));
             setIsAnonymous(storedIsAnonymous === 'true');
           } else {
-            // Token is invalid, clear session
             console.log('Session expired or invalid, clearing...');
-            localStorage.removeItem('knowrizon_token');
-            localStorage.removeItem('knowrizon_user');
-            localStorage.removeItem('knowrizon_anonymous');
+            clearAllStorages();
           }
         } catch (err) {
-          // Network error or server down, try to use cached session
           console.warn('Could not validate session:', err);
-          // Clear session to be safe
-          localStorage.removeItem('knowrizon_token');
-          localStorage.removeItem('knowrizon_user');
-          localStorage.removeItem('knowrizon_anonymous');
+          clearAllStorages();
         }
       }
       setIsLoading(false);
@@ -51,23 +85,40 @@ export function AuthProvider({ children }) {
     validateSession();
   }, []);
 
-  const saveSession = (userData, sessionToken, anonymous = false) => {
-    localStorage.setItem('knowrizon_token', sessionToken);
-    localStorage.setItem('knowrizon_user', JSON.stringify(userData));
-    localStorage.setItem('knowrizon_anonymous', String(anonymous));
+  // Destroy anonymous session when the browser tab is closed
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (isAnonymousRef.current && tokenRef.current) {
+        // Use sendBeacon for reliable fire-and-forget logout on tab close
+        const logoutUrl = `${API_BASE}/auth/logout`;
+        const payload = JSON.stringify({ token: tokenRef.current });
+        navigator.sendBeacon(logoutUrl, new Blob([payload], { type: 'application/json' }));
+
+        // Clear session storage immediately
+        clearAllStorages();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  const saveSession = useCallback((userData, sessionToken, anonymous = false) => {
+    const store = getStorage(anonymous);
+    store.setItem(STORAGE_KEYS.token, sessionToken);
+    store.setItem(STORAGE_KEYS.user, JSON.stringify(userData));
+    store.setItem(STORAGE_KEYS.anonymous, String(anonymous));
     setToken(sessionToken);
     setUser(userData);
     setIsAnonymous(anonymous);
-  };
+  }, []);
 
-  const clearSession = () => {
-    localStorage.removeItem('knowrizon_token');
-    localStorage.removeItem('knowrizon_user');
-    localStorage.removeItem('knowrizon_anonymous');
+  const clearSession = useCallback(() => {
+    clearAllStorages();
     setToken(null);
     setUser(null);
     setIsAnonymous(false);
-  };
+  }, []);
 
   const register = async (email, password, name) => {
     setError(null);

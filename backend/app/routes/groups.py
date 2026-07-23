@@ -1,7 +1,7 @@
 """Groups API routes for managing group learning sessions."""
 from flask import Blueprint, request, jsonify
 from app.services.group_service import group_service
-from app.routes.auth import require_auth
+from app.decorators import require_registered as require_auth
 
 groups_bp = Blueprint('groups', __name__)
 

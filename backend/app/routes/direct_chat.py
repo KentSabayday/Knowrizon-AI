@@ -1,7 +1,7 @@
 """Direct chat API routes for messaging between friends."""
 from flask import Blueprint, request, jsonify
 from app.services.chat_service import chat_service
-from app.routes.auth import require_auth
+from app.decorators import require_registered as require_auth
 
 direct_chat_bp = Blueprint('direct_chat', __name__)
 

@@ -1,7 +1,7 @@
 """Progress routes for user learning progress tracking."""
 from flask import Blueprint, request, jsonify
 from app.services.progress_service import progress_service
-from app.routes.auth import require_auth
+from app.decorators import require_registered as require_auth
 from app.errors import db_error_handler
 
 progress_bp = Blueprint('progress', __name__)

@@ -9,21 +9,26 @@ import { API_BASE } from '../../lib/api';
  * 
  * Features:
  * - Welcome message with user name
- * - Quick stats overview
+ * - Quick stats overview (registered users only)
  * - Quick action buttons to navigate to other sections
- * - Demo data seeding option
+ * - Demo data seeding option (registered users only)
+ * - Guest mode banner with limited actions for anonymous users
  * 
  * Requirements: 10.3
  */
 export function DashboardView({ onNavigate }) {
-  const { user, token } = useAuth();
+  const { user, token, isAnonymous } = useAuth();
   const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSeedingDemo, setIsSeedingDemo] = useState(false);
 
   useEffect(() => {
-    fetchStats();
-  }, [token]);
+    if (!isAnonymous) {
+      fetchStats();
+    } else {
+      setIsLoading(false);
+    }
+  }, [token, isAnonymous]);
 
   const fetchStats = async () => {
     setIsLoading(true);
@@ -68,8 +73,8 @@ export function DashboardView({ onNavigate }) {
     }
   };
 
-
-  const quickActions = [
+  // All quick actions with guest visibility flag
+  const allQuickActions = [
     {
       title: 'Start Learning',
       description: 'Chat with your AI tutor',
@@ -80,6 +85,7 @@ export function DashboardView({ onNavigate }) {
       ),
       path: '/lessons',
       color: 'indigo',
+      guestVisible: true,
     },
     {
       title: 'Take a Quiz',
@@ -91,6 +97,7 @@ export function DashboardView({ onNavigate }) {
       ),
       path: '/practice',
       color: 'cyan',
+      guestVisible: false,
     },
     {
       title: 'View Progress',
@@ -102,8 +109,14 @@ export function DashboardView({ onNavigate }) {
       ),
       path: '/progress',
       color: 'green',
+      guestVisible: false,
     },
   ];
+
+  // Filter quick actions based on user type
+  const quickActions = isAnonymous
+    ? allQuickActions.filter(action => action.guestVisible)
+    : allQuickActions;
 
   const colorClasses = {
     indigo: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400',
@@ -117,19 +130,47 @@ export function DashboardView({ onNavigate }) {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Welcome back{user?.name ? `, ${user.name}` : ''}! 👋
+            {isAnonymous
+              ? 'Welcome, Guest! 👋'
+              : `Welcome back${user?.name ? `, ${user.name}` : ''}! 👋`}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Ready to continue your learning journey?
+            {isAnonymous
+              ? 'You can try out AI Chat and Lessons in guest mode.'
+              : 'Ready to continue your learning journey?'}
           </p>
         </div>
-        <Button onClick={seedDemoData} variant="outline" size="sm" disabled={isSeedingDemo}>
-          {isSeedingDemo ? 'Seeding...' : 'Load Demo Data'}
-        </Button>
+        {!isAnonymous && (
+          <Button onClick={seedDemoData} variant="outline" size="sm" disabled={isSeedingDemo}>
+            {isSeedingDemo ? 'Seeding...' : 'Load Demo Data'}
+          </Button>
+        )}
       </div>
 
-      {/* Stats Overview */}
-      {!isLoading && stats && stats.totalQuizzes > 0 && (
+      {/* Guest mode banner */}
+      {isAnonymous && (
+        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-medium text-amber-900 dark:text-amber-200">Guest Mode — Limited Access</h3>
+                <p className="text-sm text-amber-700 dark:text-amber-400">
+                  You have access to AI Chat and Lessons only. Create an account to unlock quizzes, progress tracking, study groups, friends, and chat history.
+                  Your session will be cleared when you close this tab.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Stats Overview — registered users only */}
+      {!isAnonymous && !isLoading && stats && stats.totalQuizzes > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardContent className="pt-6">
@@ -183,7 +224,7 @@ export function DashboardView({ onNavigate }) {
       {/* Quick Actions */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={`grid grid-cols-1 ${isAnonymous ? 'md:grid-cols-1 max-w-md' : 'md:grid-cols-3'} gap-4`}>
           {quickActions.map((action) => (
             <Card
               key={action.path}
@@ -206,8 +247,8 @@ export function DashboardView({ onNavigate }) {
         </div>
       </div>
 
-      {/* Getting Started Guide */}
-      {!isLoading && (!stats || stats.totalQuizzes === 0) && (
+      {/* Getting Started Guide — registered users only */}
+      {!isAnonymous && !isLoading && (!stats || stats.totalQuizzes === 0) && (
         <Card>
           <CardHeader>
             <CardTitle>Getting Started</CardTitle>
@@ -245,3 +286,4 @@ export function DashboardView({ onNavigate }) {
 }
 
 export default DashboardView;
+

@@ -153,25 +153,70 @@ def logout():
     """
     Logout and invalidate the current session.
     
-    Headers:
-        - Authorization: Bearer <token>
+    Supports two ways to provide the token:
+    1. Authorization header: Bearer <token>
+    2. JSON body: { "token": "<token>" } (used by sendBeacon on tab close)
+    
+    For anonymous users, this also deletes their user record and all
+    associated data (conversations, messages) since the session is ephemeral.
     
     Returns:
         - 200: Logout successful
         - 401: No valid session
     """
-    auth_header = request.headers.get('Authorization')
+    token = None
     
-    if not auth_header or not auth_header.startswith('Bearer '):
+    # Try Authorization header first
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+    
+    # Fall back to JSON body (for sendBeacon on anonymous tab close)
+    if not token:
+        data = request.get_json(silent=True)
+        if data:
+            token = data.get('token')
+    
+    if not token:
         return jsonify({'error': 'No valid session'}), 401
     
-    token = auth_header.split(' ')[1]
+    # Check if this is an anonymous user before invalidating the session
+    user = auth_service.validate_token(token)
     
-    # Use the new database-backed logout method
     if auth_service.logout(token):
+        # If anonymous user, cleanup their data entirely
+        if user and user.is_anonymous:
+            _cleanup_anonymous_user(user)
+        
         return jsonify({'message': 'Logged out successfully'}), 200
     
     return jsonify({'error': 'No valid session'}), 401
+
+
+def _cleanup_anonymous_user(user):
+    """
+    Delete anonymous user and all associated data.
+    
+    This ensures that when an anonymous user closes their tab,
+    their conversations, messages, and user record are permanently removed
+    and cannot be recovered.
+    """
+    from app.database import db
+    from app.models.conversation import Conversation, Message
+    
+    try:
+        # Delete all conversations and their messages for this anonymous user
+        conversations = Conversation.query.filter_by(user_id=user.id).all()
+        for conv in conversations:
+            Message.query.filter_by(conversation_id=conv.id).delete()
+            db.session.delete(conv)
+        
+        # Delete the anonymous user (sessions cascade delete)
+        db.session.delete(user)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Warning: Failed to cleanup anonymous user {user.id}: {e}")
 
 
 @auth_bp.route('/me', methods=['GET'])

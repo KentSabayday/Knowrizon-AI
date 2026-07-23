@@ -1,7 +1,7 @@
 """Calls API routes for voice and video calls."""
 from flask import Blueprint, request, jsonify
 from app.services.call_service import call_service
-from app.routes.auth import require_auth
+from app.decorators import require_registered as require_auth
 
 calls_bp = Blueprint('calls', __name__)
 

@@ -8,7 +8,7 @@ import { useEffect } from 'react'
 import './App.css'
 
 function AppContent() {
-  const { isAuthenticated, isLoading, token, user } = useAuth();
+  const { isAuthenticated, isLoading, token, user, isAnonymous } = useAuth();
 
   // Connect Pusher when authenticated
   useEffect(() => {
@@ -42,6 +42,12 @@ function AppContent() {
     return <LandingPage onAuthSuccess={() => {}} />;
   }
 
+  // Anonymous users get a streamlined layout without social feature providers
+  if (isAnonymous) {
+    return <MainLayout />;
+  }
+
+  // Registered users get the full experience with all providers
   return (
     <FriendsProvider>
       <ChatProvider>

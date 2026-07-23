@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify
 from app.services.friend_service import friend_service
 from app.services.presence_service import presence_service
-from app.routes.auth import require_auth
+from app.decorators import require_registered as require_auth
 
 friends_bp = Blueprint('friends', __name__)
 

@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify
 from app.services.quiz_service import quiz_service
 from app.services.progress_service import progress_service
-from app.routes.auth import require_auth
+from app.decorators import require_registered as require_auth
 from app.errors import db_error_handler
 
 quiz_bp = Blueprint('quiz', __name__)

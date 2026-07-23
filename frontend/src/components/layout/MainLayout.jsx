@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { ProgressDashboard } from '../progress/ProgressDashboard'
@@ -10,12 +10,30 @@ import { HistoryView } from '../pages/HistoryView'
 import { FriendsView } from '../friends/FriendsView'
 import { GroupLearningView } from '../groups/GroupLearningView'
 import { CallInterface } from '../calls/CallInterface'
+import { useAuth } from '../../context/AuthContext'
+
+/** Paths accessible to anonymous / guest users */
+const GUEST_ALLOWED_PATHS = ['/dashboard', '/lessons'];
 
 export function MainLayout({ children }) {
   const [currentPath, setCurrentPath] = useState('/dashboard')
   const [activeConversationId, setActiveConversationId] = useState(null)
+  const { isAnonymous } = useAuth()
+
+  // Guard: if anonymous user somehow lands on a restricted path, redirect to dashboard
+  useEffect(() => {
+    if (isAnonymous && !GUEST_ALLOWED_PATHS.includes(currentPath)) {
+      setCurrentPath('/dashboard')
+      setActiveConversationId(null)
+    }
+  }, [isAnonymous, currentPath])
 
   const handleNavigate = (path, conversationId = null) => {
+    // Block anonymous users from navigating to restricted pages
+    if (isAnonymous && !GUEST_ALLOWED_PATHS.includes(path)) {
+      return
+    }
+
     setCurrentPath(path)
     if (conversationId) {
       setActiveConversationId(conversationId)
@@ -31,20 +49,26 @@ export function MainLayout({ children }) {
       case '/lessons':
         return <LessonsView conversationId={activeConversationId} onConversationChange={setActiveConversationId} />;
       case '/practice':
+        if (isAnonymous) return children || <DashboardView onNavigate={handleNavigate} />;
         return <PracticeView />;
       case '/progress':
+        if (isAnonymous) return children || <DashboardView onNavigate={handleNavigate} />;
         return (
           <div className="p-6 overflow-auto h-full">
             <ProgressDashboard />
           </div>
         );
       case '/history':
+        if (isAnonymous) return children || <DashboardView onNavigate={handleNavigate} />;
         return <HistoryView onNavigate={handleNavigate} />;
       case '/settings':
+        if (isAnonymous) return children || <DashboardView onNavigate={handleNavigate} />;
         return <SettingsView />;
       case '/friends':
+        if (isAnonymous) return children || <DashboardView onNavigate={handleNavigate} />;
         return <FriendsView />;
       case '/groups':
+        if (isAnonymous) return children || <DashboardView onNavigate={handleNavigate} />;
         return <GroupLearningView />;
       case '/dashboard':
       default:
@@ -68,8 +92,9 @@ export function MainLayout({ children }) {
         </main>
       </div>
       
-      {/* Call Interface (full screen when active) */}
-      <CallInterface />
+      {/* Call Interface (full screen when active) — hidden for anonymous users */}
+      {!isAnonymous && <CallInterface />}
     </div>
   )
 }
+

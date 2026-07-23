@@ -1,21 +1,33 @@
 import { LayoutDashboard, BookOpen, Dumbbell, TrendingUp, History, Settings, Users, UsersRound } from 'lucide-react'
 import { useFriends } from '../../context/FriendsContext'
+import { useAuth } from '../../context/AuthContext'
 import { Badge } from '../ui/Badge'
 
+/**
+ * Navigation item definitions.
+ * Items with `guestVisible: true` are shown to anonymous users.
+ * All items are shown to registered users.
+ */
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: BookOpen, label: 'Lessons', path: '/lessons' },
-  { icon: Dumbbell, label: 'Practice', path: '/practice' },
-  { icon: Users, label: 'Friends', path: '/friends', hasBadge: true },
-  { icon: UsersRound, label: 'Study Groups', path: '/groups' },
-  { icon: TrendingUp, label: 'Progress', path: '/progress' },
-  { icon: History, label: 'History', path: '/history' },
-  { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', guestVisible: true },
+  { icon: BookOpen, label: 'Lessons', path: '/lessons', guestVisible: true },
+  { icon: Dumbbell, label: 'Practice', path: '/practice', guestVisible: false },
+  { icon: Users, label: 'Friends', path: '/friends', hasBadge: true, guestVisible: false },
+  { icon: UsersRound, label: 'Study Groups', path: '/groups', guestVisible: false },
+  { icon: TrendingUp, label: 'Progress', path: '/progress', guestVisible: false },
+  { icon: History, label: 'History', path: '/history', guestVisible: false },
+  { icon: Settings, label: 'Settings', path: '/settings', guestVisible: false },
 ]
 
 export function Sidebar({ currentPath = '/dashboard', onNavigate }) {
-  const friendsContext = useFriends?.() || { pendingCount: 0 };
-  const { pendingCount } = friendsContext;
+  const friendsContext = useFriends();
+  const pendingCount = friendsContext?.pendingCount || 0;
+  const { isAnonymous } = useAuth();
+
+  // Filter nav items: anonymous users only see guestVisible items
+  const visibleNavItems = isAnonymous
+    ? navItems.filter(item => item.guestVisible)
+    : navItems;
 
   return (
     <aside className="w-64 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
@@ -32,7 +44,7 @@ export function Sidebar({ currentPath = '/dashboard', onNavigate }) {
       {/* Navigation */}
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-          {navItems.map(({ icon: Icon, label, path, hasBadge }) => {
+          {visibleNavItems.map(({ icon: Icon, label, path, hasBadge }) => {
             const isActive = currentPath === path
             const badgeCount = hasBadge && path === '/friends' ? pendingCount : 0
 
@@ -56,6 +68,19 @@ export function Sidebar({ currentPath = '/dashboard', onNavigate }) {
           })}
         </ul>
       </nav>
+
+      {/* Guest indicator */}
+      {isAnonymous && (
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <p className="text-xs text-amber-600 dark:text-amber-400 text-center font-medium">
+            Guest Mode — Limited Access
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-1">
+            Sign up to unlock all features
+          </p>
+        </div>
+      )}
     </aside>
   )
 }
+

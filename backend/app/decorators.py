@@ -73,6 +73,41 @@ def require_auth(f):
     return decorated_function
 
 
+def require_registered(f):
+    """
+    Decorator to require a registered (non-anonymous) user for a route.
+    
+    First validates authentication (same as require_auth), then verifies
+    the user is NOT anonymous. Anonymous/guest users are denied access
+    with a 403 Forbidden response.
+    
+    Usage:
+        @app.route('/registered-only')
+        @require_registered
+        def registered_only_route():
+            user = g.current_user  # Guaranteed to be a registered user
+            return jsonify({'user': user.to_dict()})
+    
+    Returns:
+        - 401 Unauthorized if authentication fails
+        - 403 Forbidden if user is anonymous
+    """
+    @wraps(f)
+    @require_auth
+    def decorated_function(*args, **kwargs):
+        user = g.current_user
+        
+        if user.is_anonymous:
+            return jsonify({
+                'error': 'This feature requires a registered account. Please sign up to access it.',
+                'code': 'ANONYMOUS_NOT_ALLOWED'
+            }), 403
+        
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
+
 def optional_auth(f):
     """
     Decorator for routes that optionally accept authentication.
@@ -108,3 +143,4 @@ def optional_auth(f):
         return f(*args, **kwargs)
     
     return decorated_function
+
