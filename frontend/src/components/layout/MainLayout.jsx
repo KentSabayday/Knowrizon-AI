@@ -38,7 +38,29 @@ export function MainLayout({ children }) {
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [showKnowriTip, setShowKnowriTip] = useState(false);
   const [knowriMessage, setKnowriMessage] = useState(KNOWRI_MESSAGES[0]);
-  const { isAnonymous } = useAuth();
+  const [showMascot, setShowMascot] = useState(true);
+  const [welcomeShown, setWelcomeShown] = useState(false);
+  const { isAnonymous, user } = useAuth();
+
+  // Show welcome greeting once per session on mount
+  useEffect(() => {
+    const alreadyWelcomed = sessionStorage.getItem('knowri-welcomed');
+    if (!alreadyWelcomed && user?.name) {
+      setWelcomeShown(true);
+      setShowKnowriTip(true);
+      const firstName = user.name.split(' ')[0];
+      setKnowriMessage(`Welcome, ${firstName}! Have a great study session! 🎓`);
+      sessionStorage.setItem('knowri-welcomed', 'true');
+    }
+  }, [user]);
+
+  // Auto-hide mascot after 10 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowMascot(false);
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Guard: if anonymous user somehow lands on a restricted path, redirect to dashboard
   useEffect(() => {
@@ -48,10 +70,13 @@ export function MainLayout({ children }) {
     }
   }, [isAnonymous, currentPath]);
 
-  // Rotate Knowri messages when page changes
+  // Rotate Knowri messages when page changes (skip if welcome is still showing)
   useEffect(() => {
-    setKnowriMessage(KNOWRI_MESSAGES[Math.floor(Math.random() * KNOWRI_MESSAGES.length)]);
+    if (!welcomeShown) {
+      setKnowriMessage(KNOWRI_MESSAGES[Math.floor(Math.random() * KNOWRI_MESSAGES.length)]);
+    }
     setShowKnowriTip(false);
+    setWelcomeShown(false);
   }, [currentPath]);
 
   const handleNavigate = (path, conversationId = null) => {
@@ -132,8 +157,12 @@ export function MainLayout({ children }) {
         </main>
       </div>
 
-      {/* Floating Knowri assistant (bottom-right) */}
-      <div className="fixed bottom-6 right-6 z-50">
+      {/* Floating Knowri assistant (bottom-right) — auto-hides after 10s */}
+      <div
+        className={`fixed bottom-6 right-6 z-50 transition-all duration-700 ${
+          showMascot ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+      >
         <button
           onClick={() => setShowKnowriTip(!showKnowriTip)}
           className="relative dash-knowri-float group"
