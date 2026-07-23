@@ -588,7 +588,7 @@ export function ChatInterface({
     <div className="flex flex-col h-full bg-transparent">
       {/* Messages Container */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-5">
-        <div className="max-w-[920px] mx-auto space-y-5">
+        <div className="space-y-5">
 
           {/* ── Welcome State ── */}
           {messages.length === 0 && !isLoading && (
@@ -672,7 +672,7 @@ export function ChatInterface({
       {/* Active Knowledge Context */}
       {uploadedContent.length > 0 && (
         <div className="flex-shrink-0 px-5 pb-1">
-          <div className="max-w-[920px] mx-auto flex items-center gap-2 text-[10px] text-[#475569]">
+          <div className="flex items-center gap-2 text-[10px] text-[#475569]">
             <FileText className="w-3 h-3" />
             <span>Using:</span>
             {uploadedContent.slice(0, 3).map((c, i) => (
@@ -689,14 +689,14 @@ export function ChatInterface({
 
       {/* Glass Input Area */}
       <div className="flex-shrink-0 p-4 pt-2">
-        <form onSubmit={handleSubmit} className="relative max-w-[920px] mx-auto">
+        <form onSubmit={handleSubmit} className="relative">
           <textarea
             ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask Knowri anything about your learning materials…"
-            disabled={isLoading}
+            disabled={isLoading && !isStreaming}
             rows={1}
             className="w-full bg-[#111827]/60 backdrop-blur-sm border border-white/[0.08] rounded-2xl pl-5 pr-14 py-4 text-[15px] text-white placeholder:text-[#475569] outline-none focus:border-[#22C7FF]/30 focus:ring-1 focus:ring-[#22C7FF]/15 transition-all disabled:opacity-50 resize-none overflow-hidden leading-relaxed"
             style={{ minHeight: '56px', maxHeight: '160px' }}
@@ -705,11 +705,11 @@ export function ChatInterface({
           />
           <button
             type="submit"
-            disabled={isLoading || !inputValue.trim()}
+            disabled={(isLoading && !isStreaming) || !inputValue.trim()}
             className="absolute right-3 bottom-3 w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-gradient-to-r from-[#22C7FF] to-[#5B5FFF] text-white hover:shadow-lg hover:shadow-[#22C7FF]/20"
             aria-label="Send message"
           >
-            {isLoading ? (
+            {isLoading && !isStreaming ? (
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <ArrowUp className="w-4 h-4" />
