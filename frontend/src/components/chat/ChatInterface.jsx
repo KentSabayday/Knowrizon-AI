@@ -454,6 +454,7 @@ export function ChatInterface({
       const decoder = new TextDecoder();
       let buffer = '';
       let fullContent = '';
+      let streamComplete = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -483,6 +484,7 @@ export function ChatInterface({
                 setMessages((prev) =>
                   prev.map((m) => m.id === assistantMessageId ? { ...m, isStreaming: false } : m)
                 );
+                streamComplete = true;
               }
             } catch (parseError) {
               const chunk = data
@@ -498,6 +500,12 @@ export function ChatInterface({
               );
             }
           }
+        }
+
+        // Break immediately once the completion signal is received
+        if (streamComplete) {
+          reader.cancel().catch(() => {});
+          break;
         }
       }
 
