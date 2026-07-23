@@ -264,7 +264,9 @@ class AgentOrchestrator:
     def generate_quiz(self, topic: Optional[str] = None, 
                       content: Optional[str] = None,
                       question_count: int = 5,
-                      max_retries: int = 3) -> list[dict]:
+                      max_retries: int = 3,
+                      source_mode: str = 'topic_based',
+                      content_meta: Optional[dict] = None) -> list[dict]:
         """
         Generate a quiz using the QuizAgent with real AI.
         
@@ -273,6 +275,8 @@ class AgentOrchestrator:
             content: Optional content summary to base questions on.
             question_count: Number of questions to generate.
             max_retries: Maximum retries for invalid JSON format.
+            source_mode: One of 'uploaded_only', 'uploaded_web', 'topic_based'.
+            content_meta: Optional dict with content metadata (contentId, filename, title).
             
         Returns:
             List of quiz question dictionaries with validated structure.
@@ -284,7 +288,10 @@ class AgentOrchestrator:
             return []
         
         # Build messages for the API call
-        messages = self._build_quiz_messages(quiz_agent, topic, content, question_count)
+        messages = self._build_quiz_messages(
+            quiz_agent, topic, content, question_count,
+            source_mode=source_mode, content_meta=content_meta
+        )
         
         # Try to generate valid quiz with retries for JSON parsing
         for attempt in range(max_retries):
@@ -303,6 +310,10 @@ class AgentOrchestrator:
                 questions = self._parse_quiz_response(response, question_count)
                 
                 if questions:
+                    # Attach source metadata based on source mode
+                    questions = self._attach_source_metadata(
+                        questions, source_mode, content_meta
+                    )
                     return questions
                 
                 # If parsing failed, add more explicit format instruction for retry
@@ -310,7 +321,8 @@ class AgentOrchestrator:
                     logger.warning(f"Quiz generation attempt {attempt + 1} failed to produce valid JSON. Retrying with stricter prompt.")
                     messages = self._build_quiz_messages(
                         quiz_agent, topic, content, question_count, 
-                        strict_format=True
+                        strict_format=True,
+                        source_mode=source_mode, content_meta=content_meta
                     )
                     
             except Exception as e:
@@ -325,13 +337,79 @@ class AgentOrchestrator:
         # Return fallback if all retries exhausted
         return self._generate_fallback_quiz(topic, question_count)
     
+    def _attach_source_metadata(
+        self,
+        questions: list[dict],
+        source_mode: str,
+        content_meta: Optional[dict]
+    ) -> list[dict]:
+        """
+        Attach source and validity metadata to questions based on source mode.
+        Never fabricates sources — only attaches what is actually available.
+        """
+        for q in questions:
+            if source_mode == 'uploaded_only' and content_meta:
+                # Source is the uploaded content — mark as verified against it
+                q['sources'] = [{
+                    'sourceType': 'uploaded_content',
+                    'contentId': content_meta.get('contentId'),
+                    'title': content_meta.get('title') or content_meta.get('filename'),
+                    'filename': content_meta.get('filename'),
+                    'pageNumber': None,  # Never fabricate page numbers
+                    'section': None,
+                    'excerpt': None,  # AI-generated — not a direct excerpt
+                    'verified': True,
+                }]
+                q['validity'] = {
+                    'status': 'verified',
+                    'confidence': 0.85,
+                    'reason': 'Question derived from uploaded content.',
+                    'validationMethod': 'content_based_generation',
+                    'evidence': None,
+                }
+            elif source_mode == 'uploaded_web' and content_meta:
+                q['sources'] = [{
+                    'sourceType': 'uploaded_content',
+                    'contentId': content_meta.get('contentId'),
+                    'title': content_meta.get('title') or content_meta.get('filename'),
+                    'filename': content_meta.get('filename'),
+                    'pageNumber': None,
+                    'section': None,
+                    'excerpt': None,
+                    'verified': True,
+                }]
+                q['validity'] = {
+                    'status': 'verified',
+                    'confidence': 0.80,
+                    'reason': 'Question derived from uploaded content with possible web enrichment.',
+                    'validationMethod': 'content_based_generation',
+                    'evidence': None,
+                }
+            else:
+                # Topic-based: AI-generated without real retrieval
+                q['sources'] = [{
+                    'sourceType': 'ai_generated',
+                    'title': f'AI-generated question about {q.get("topic", "the topic")}',
+                    'verified': False,
+                }]
+                q['validity'] = {
+                    'status': 'pending_validation',
+                    'confidence': 0.60,
+                    'reason': 'Generated from AI knowledge without verified source retrieval.',
+                    'validationMethod': 'ai_generation',
+                    'evidence': None,
+                }
+        return questions
+    
     def _build_quiz_messages(
         self,
         agent: AgentPrompt,
         topic: Optional[str],
         content: Optional[str],
         question_count: int,
-        strict_format: bool = False
+        strict_format: bool = False,
+        source_mode: str = 'topic_based',
+        content_meta: Optional[dict] = None
     ) -> list[dict]:
         """
         Build the messages array for quiz generation API call.
@@ -342,6 +420,8 @@ class AgentOrchestrator:
             content: Optional content to base questions on.
             question_count: Number of questions to generate.
             strict_format: Whether to use stricter JSON format instructions.
+            source_mode: Source mode for question generation.
+            content_meta: Optional content metadata dict.
             
         Returns:
             List of message dictionaries with 'role' and 'content'.
@@ -351,7 +431,7 @@ class AgentOrchestrator:
         # System message with agent's system prompt and JSON format instructions
         system_content = agent.system_prompt
         
-        # Add JSON format instructions
+        # Add JSON format instructions with enhanced fields
         json_format_instruction = """
 
 IMPORTANT: You MUST respond with ONLY a valid JSON array. Do not include any text before or after the JSON.
@@ -363,7 +443,11 @@ The response must be a JSON array of question objects with this exact structure:
     "question": "Your question text here?",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correct_index": 0,
-    "explanation": "Explanation of why the correct answer is correct."
+    "explanation": "Explanation of why the correct answer is correct.",
+    "learningExplanation": "Educational explanation of the underlying concept and how to remember it.",
+    "difficulty": "medium",
+    "topic": "Topic or concept area",
+    "conceptId": "topic-concept-slug"
   }
 ]
 
@@ -372,7 +456,11 @@ Rules:
 - correct_index MUST be 0, 1, 2, or 3 (the index of the correct option)
 - All 4 options MUST be distinct (no duplicate options)
 - Each question MUST have a non-empty explanation
-- The id should be "q1", "q2", etc."""
+- Each question MUST have a learningExplanation that teaches the concept
+- Each question MUST have a difficulty level: "easy", "medium", or "challenging"
+- Each question MUST have a topic label and a conceptId slug
+- The id should be "q1", "q2", etc.
+- Never fabricate page numbers, excerpts, or citations"""
         
         if strict_format:
             json_format_instruction += """
@@ -380,6 +468,12 @@ Rules:
 CRITICAL: Your previous response was not valid JSON. You MUST respond with ONLY the JSON array, starting with [ and ending with ]. No markdown code blocks, no explanations, just the raw JSON array."""
         
         system_content += json_format_instruction
+        
+        # Add source mode context
+        if source_mode == 'uploaded_only':
+            system_content += "\n\nSOURCE MODE: You must base ALL questions ONLY on the provided content. Do not introduce outside facts."
+        elif source_mode == 'uploaded_web':
+            system_content += "\n\nSOURCE MODE: Use the provided content as the primary source. You may supplement with general knowledge when the content lacks context."
         
         messages.append({
             "role": "system",
@@ -394,6 +488,12 @@ CRITICAL: Your previous response was not valid JSON. You MUST respond with ONLY 
         
         if content:
             user_parts.append(f"Content Summary: {content}")
+        
+        if content_meta:
+            meta_info = f"Source Document: {content_meta.get('filename', 'Unknown')}"
+            if content_meta.get('title'):
+                meta_info += f" (Title: {content_meta['title']})"
+            user_parts.append(meta_info)
         
         user_parts.append(f"Generate exactly {question_count} multiple-choice questions.")
         
@@ -531,16 +631,34 @@ CRITICAL: Your previous response was not valid JSON. You MUST respond with ONLY 
         if not explanation:
             explanation = "No explanation provided."
         
+        # Get enhanced fields
+        learning_explanation = question_data.get("learningExplanation", "").strip()
+        difficulty = question_data.get("difficulty", "medium").strip().lower()
+        if difficulty not in ("easy", "medium", "challenging"):
+            difficulty = "medium"
+        question_topic = question_data.get("topic", "").strip()
+        concept_id = question_data.get("conceptId", f"concept-{index}").strip()
+        
         # Get or generate ID
         question_id = question_data.get("id", f"q{index}")
         
-        return {
+        result = {
             "id": question_id,
             "question": question_text,
             "options": options,
             "correct_index": correct_index,
-            "explanation": explanation
+            "explanation": explanation,
         }
+        
+        # Add enhanced fields when available
+        if learning_explanation:
+            result["learningExplanation"] = learning_explanation
+        result["difficulty"] = difficulty
+        if question_topic:
+            result["topic"] = question_topic
+        result["conceptId"] = concept_id
+        
+        return result
     
     def _generate_fallback_quiz(self, topic: Optional[str], question_count: int) -> list[dict]:
         """
@@ -573,7 +691,23 @@ CRITICAL: Your previous response was not valid JSON. You MUST respond with ONLY 
                 "explanation": (
                     "⚠️ This is a placeholder question. The AI service was unavailable. "
                     "To enable real quiz generation, set the NEBIUS_API_KEY environment variable."
-                )
+                ),
+                "learningExplanation": "",
+                "difficulty": "medium",
+                "topic": topic or "General",
+                "conceptId": f"fallback-{i+1}",
+                "validity": {
+                    "status": "pending_validation",
+                    "confidence": 0.0,
+                    "reason": "Fallback question — AI service unavailable.",
+                    "validationMethod": "none",
+                    "evidence": None,
+                },
+                "sources": [{
+                    "sourceType": "ai_generated",
+                    "title": "Fallback placeholder",
+                    "verified": False,
+                }]
             })
         
         return placeholder_questions

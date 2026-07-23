@@ -13,7 +13,8 @@ class QuizService:
     
     def generate_quiz(self, user_id: str, topic: Optional[str] = None,
                       content_id: Optional[str] = None,
-                      question_count: int = 5) -> tuple[Optional[Quiz], Optional[str]]:
+                      question_count: int = 5,
+                      source_mode: str = 'topic_based') -> tuple[Optional[Quiz], Optional[str]]:
         """
         Generate a quiz from a topic or content.
         
@@ -22,6 +23,7 @@ class QuizService:
             topic: Optional topic for the quiz.
             content_id: Optional content ID to base questions on.
             question_count: Number of questions to generate.
+            source_mode: 'uploaded_only', 'uploaded_web', or 'topic_based'.
             
         Returns:
             Tuple of (Quiz, error_message). Quiz is None if error occurred.
@@ -35,8 +37,9 @@ class QuizService:
         if question_count > 20:
             return None, "Question count cannot exceed 20"
         
-        # Get content summary if content_id provided
+        # Get content summary and metadata if content_id provided
         content_summary = None
+        content_meta = None
         if content_id:
             content = content_service.get_content(content_id)
             if not content:
@@ -47,13 +50,26 @@ class QuizService:
             if content.key_points:
                 content_summary = ". ".join(content.key_points)
             elif content.summary:
-                content_summary = ". ".join(content.summary)
+                content_summary = ". ".join(content.summary) if isinstance(content.summary, list) else content.summary
+            
+            # Build content metadata for source attribution
+            content_meta = {
+                'contentId': content_id,
+                'filename': content.filename,
+                'title': content.title or content.filename,
+            }
+            
+            # Set source mode based on content availability
+            if source_mode == 'topic_based':
+                source_mode = 'uploaded_only'
         
-        # Generate questions using QuizAgent
+        # Generate questions using QuizAgent with enhanced metadata
         raw_questions = agent_orchestrator.generate_quiz(
             topic=topic,
             content=content_summary,
-            question_count=question_count
+            question_count=question_count,
+            source_mode=source_mode,
+            content_meta=content_meta
         )
         
         if not raw_questions:
@@ -91,22 +107,97 @@ class QuizService:
             topic=topic,
             content_id=content_id,
         )
-        # Store full question data including correct answers and explanations
-        quiz_data.questions = [
-            {
+        # Store full question data including correct answers, explanations,
+        # and enhanced metadata (validity, sources, learningExplanation, etc.)
+        enhanced_questions = []
+        for i, q in enumerate(validated_questions):
+            raw_q = raw_questions[i] if i < len(raw_questions) else {}
+            eq = {
                 'id': q.id,
                 'question': q.question,
                 'options': q.options,
                 'correct_index': q.correct_index,
                 'explanation': q.explanation,
+                'learningExplanation': raw_q.get('learningExplanation', ''),
+                'difficulty': raw_q.get('difficulty', 'medium'),
+                'topic': raw_q.get('topic', topic or ''),
+                'conceptId': raw_q.get('conceptId', f'concept-{i+1}'),
+                'validity': raw_q.get('validity', {
+                    'status': 'pending_validation',
+                    'confidence': 0.0,
+                    'reason': 'Validation data unavailable.',
+                    'validationMethod': 'none',
+                    'evidence': None,
+                }),
+                'sources': raw_q.get('sources', []),
             }
-            for q in validated_questions
-        ]
+            enhanced_questions.append(eq)
+        
+        quiz_data.questions = enhanced_questions
+        
+        # Store quiz metadata inside questions_json wrapper
+        quiz_data_meta = {
+            'sourceMode': source_mode,
+            'contentMeta': content_meta,
+            'questions': enhanced_questions,
+        }
+        import json
+        quiz_data.questions_json = json.dumps(quiz_data_meta)
         
         db.session.add(quiz_data)
         db.session.commit()
         
         return quiz, None
+    
+    def retake_quiz(self, quiz_id: str, user_id: str,
+                    incorrect_only: bool = False) -> tuple[Optional[str], Optional[str]]:
+        """
+        Create a new attempt for an existing quiz.
+        
+        Args:
+            quiz_id: ID of the original quiz.
+            user_id: ID of the user.
+            incorrect_only: If True, only include questions answered incorrectly.
+            
+        Returns:
+            Tuple of (new_quiz_id, error_message).
+        """
+        quiz_data = QuizData.query.get(quiz_id)
+        if not quiz_data:
+            return None, "Quiz not found"
+        if quiz_data.user_id != user_id:
+            return None, "Not authorized to access this quiz"
+        
+        # Get the stored data
+        stored = quiz_data.get_stored_data()
+        questions = stored.get('questions', [])
+        
+        if not questions:
+            return None, "No questions found in quiz"
+        
+        # Create new quiz entry linked to original
+        new_id = str(uuid.uuid4())
+        new_quiz = QuizData(
+            id=new_id,
+            user_id=user_id,
+            topic=quiz_data.topic,
+            content_id=quiz_data.content_id,
+        )
+        
+        import json
+        new_quiz.questions_json = json.dumps({
+            'sourceMode': stored.get('sourceMode', 'topic_based'),
+            'contentMeta': stored.get('contentMeta'),
+            'questions': questions,
+            'parentAttemptId': quiz_id,
+            'retakeType': 'incorrect_only' if incorrect_only else 'full',
+        })
+        
+        db.session.add(new_quiz)
+        db.session.commit()
+        
+        return new_id, None
+
     
     def get_quiz(self, quiz_id: str) -> Optional[Quiz]:
         """Get a quiz by ID from the database."""

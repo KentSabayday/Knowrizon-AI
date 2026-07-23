@@ -1,4 +1,4 @@
-"""Quiz routes for quiz generation and submission."""
+"""Quiz routes for quiz generation, submission, retake, and review."""
 from flask import Blueprint, request, jsonify, g
 from app.services.quiz_service import quiz_service
 from app.services.progress_service import progress_service
@@ -19,11 +19,12 @@ def generate_quiz():
         - topic: str (optional) - Topic for the quiz
         - contentId: str (optional) - Content ID to base questions on
         - questionCount: int (optional, default 5) - Number of questions
+        - sourceMode: str (optional) - 'uploaded_only', 'uploaded_web', 'topic_based'
     
     At least one of topic or contentId must be provided.
     
     Returns:
-        - 200: Generated quiz with questions
+        - 200: Generated quiz with questions (without correct answers)
         - 400: Invalid request (missing topic/contentId, invalid count)
         - 401: Unauthorized
         - 404: Content not found
@@ -39,6 +40,7 @@ def generate_quiz():
     topic = data.get('topic')
     content_id = data.get('contentId')
     question_count = data.get('questionCount', 5)
+    source_mode = data.get('sourceMode', 'topic_based')
     
     # Validate question count
     if not isinstance(question_count, int):
@@ -49,7 +51,8 @@ def generate_quiz():
         user_id=user_id,
         topic=topic,
         content_id=content_id,
-        question_count=question_count
+        question_count=question_count,
+        source_mode=source_mode
     )
     
     if error_msg:
@@ -62,9 +65,16 @@ def generate_quiz():
             return jsonify({'error': error_msg}), 400
     
     # Return quiz without correct answers for client
-    quiz_dict = quiz.to_dict()
+    # Use the DB-stored version to get enhanced metadata
+    from app.models.quiz_data import QuizData
+    quiz_data = QuizData.query.get(quiz.id)
     
-    # Remove correct answers from response (client shouldn't see them)
+    if quiz_data:
+        client_dict = quiz_data.to_client_dict()
+        return jsonify(client_dict), 200
+    
+    # Fallback: use in-memory quiz dict (backward compat)
+    quiz_dict = quiz.to_dict()
     for question in quiz_dict['questions']:
         del question['correctIndex']
         del question['explanation']
@@ -87,7 +97,7 @@ def submit_quiz():
         - answers: list[int] (required) - List of answer indices
     
     Returns:
-        - 200: Quiz results with score and explanations
+        - 200: Quiz results with score, explanations, validity, and sources
         - 400: Invalid request (missing fields, wrong answer count)
         - 401: Unauthorized
         - 404: Quiz not found
@@ -163,6 +173,97 @@ def submit_quiz():
         )
     
     return jsonify(grade_result), 200
+
+
+@quiz_bp.route('/retake', methods=['POST'])
+@require_auth
+@db_error_handler
+def retake_quiz():
+    """
+    Create a new attempt for an existing quiz (retake).
+    
+    Request body:
+        - quizId: str (required) - ID of the original quiz
+        - incorrectOnly: bool (optional) - Only include incorrect questions
+    
+    Returns:
+        - 200: New quiz data for the retake attempt
+        - 400: Invalid request
+        - 404: Quiz not found
+    """
+    user_id = g.current_user.id
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Request body is required'}), 400
+    
+    quiz_id = data.get('quizId')
+    incorrect_only = data.get('incorrectOnly', False)
+    
+    if not quiz_id:
+        return jsonify({'error': 'quizId is required'}), 400
+    
+    new_quiz_id, error_msg = quiz_service.retake_quiz(
+        quiz_id=quiz_id,
+        user_id=user_id,
+        incorrect_only=incorrect_only
+    )
+    
+    if error_msg:
+        if "not found" in error_msg.lower():
+            return jsonify({'error': error_msg}), 404
+        elif "not authorized" in error_msg.lower():
+            return jsonify({'error': error_msg}), 403
+        else:
+            return jsonify({'error': error_msg}), 400
+    
+    # Return the new quiz data for client
+    from app.models.quiz_data import QuizData
+    new_quiz = QuizData.query.get(new_quiz_id)
+    if new_quiz:
+        return jsonify(new_quiz.to_client_dict()), 200
+    
+    return jsonify({'error': 'Failed to create retake'}), 500
+
+
+@quiz_bp.route('/<quiz_id>/review', methods=['POST'])
+@require_auth
+@db_error_handler
+def review_quiz(quiz_id: str):
+    """
+    Get full quiz data for review mode (includes correct answers).
+    Only available after quiz has been submitted.
+    
+    Request body (optional):
+        - answers: list[int] - User's answers to include in review
+    
+    Returns:
+        - 200: Full quiz data with correct answers, explanations, sources
+        - 403: Not authorized or quiz not yet submitted
+        - 404: Quiz not found
+    """
+    user_id = g.current_user.id
+    
+    from app.models.quiz_data import QuizData
+    quiz_data = QuizData.query.get(quiz_id)
+    
+    if not quiz_data:
+        return jsonify({'error': 'Quiz not found'}), 404
+    
+    if quiz_data.user_id != user_id:
+        return jsonify({'error': 'Not authorized to access this quiz'}), 403
+    
+    if not quiz_data.is_submitted:
+        return jsonify({'error': 'Quiz must be submitted before review'}), 403
+    
+    # Get answers from request body if provided
+    answers = None
+    data = request.get_json(silent=True)
+    if data and isinstance(data.get('answers'), list):
+        answers = data['answers']
+    
+    review_data = quiz_data.get_review_data(answers)
+    return jsonify(review_data), 200
 
 
 @quiz_bp.route('/<quiz_id>', methods=['GET'])
