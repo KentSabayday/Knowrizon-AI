@@ -19,7 +19,7 @@ export function LearningReferences({ results, contentMeta }) {
           uploadedSources.set(key, { ...source, questionIndices: [] });
         }
         uploadedSources.get(key).questionIndices.push(idx + 1);
-      } else if (source.sourceType === 'web' && source.verified && source.url) {
+      } else if (source.sourceType === 'web' && source.url) {
         if (!webSources.has(key)) {
           webSources.set(key, { ...source, questionIndices: [] });
         }

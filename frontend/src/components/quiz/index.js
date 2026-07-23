@@ -10,7 +10,6 @@ export { QuizNavigator } from './QuizNavigator';
 export { AnswerOption } from './AnswerOption';
 export { QuizResults } from './QuizResults';
 export { ResultQuestionCard } from './ResultQuestionCard';
-export { ValidityPanel } from './ValidityPanel';
 export { LearningReferences } from './LearningReferences';
 export { ReviewMode } from './ReviewMode';
 export { ReviewComplete } from './ReviewComplete';

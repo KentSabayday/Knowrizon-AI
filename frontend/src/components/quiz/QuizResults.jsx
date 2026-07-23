@@ -18,7 +18,6 @@ const FILTERS = [
   { key: 'correct', label: 'Correct' },
   { key: 'incorrect', label: 'Incorrect' },
   { key: 'flagged', label: 'Flagged' },
-  { key: 'unscored', label: 'Needs Verification' },
 ];
 
 export function QuizResults({
@@ -37,8 +36,6 @@ export function QuizResults({
     score = 0,
     correctCount = 0,
     totalQuestions = 0,
-    scoredQuestions = 0,
-    unscoredQuestions = 0,
     results: questionResults = [],
     sourceMode,
     contentMeta,
@@ -61,7 +58,6 @@ export function QuizResults({
     if (filter === 'correct') return questionResults.filter(r => r.isCorrect);
     if (filter === 'incorrect') return questionResults.filter(r => !r.isCorrect);
     if (filter === 'flagged') return questionResults.filter((_, i) => flaggedQuestions.has(i));
-    if (filter === 'unscored') return questionResults.filter(r => !r.isScored);
     return questionResults;
   }, [filter, questionResults, flaggedQuestions]);
 
@@ -121,15 +117,6 @@ export function QuizResults({
             <div className="text-lg font-bold text-slate-300">{totalQuestions}</div>
             <div className="text-slate-400">Total</div>
           </div>
-          {unscoredQuestions > 0 && (
-            <>
-              <div className="w-px h-8 bg-slate-700" />
-              <div className="text-center">
-                <div className="text-lg font-bold text-amber-400">{unscoredQuestions}</div>
-                <div className="text-slate-400">Unscored</div>
-              </div>
-            </>
-          )}
         </div>
       </motion.div>
 

@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { ValidityPanel } from './ValidityPanel';
 
 /**
  * ResultQuestionCard — Individual result card with explicit ✅/❌ header,
- * user answer, correct answer, explanations, validity, and sources.
+ * user answer, correct answer, explanations, and sources.
  */
 export function ResultQuestionCard({ result, index }) {
   const [expanded, setExpanded] = useState(false);
@@ -13,17 +12,14 @@ export function ResultQuestionCard({ result, index }) {
     userAnswer,
     correctAnswer,
     isCorrect,
-    isScored,
     options = [],
     explanation,
     learningExplanation,
-    validity,
     sources = [],
   } = result;
 
   const userAnswerText = options[userAnswer] || 'Not answered';
   const correctAnswerText = options[correctAnswer] || 'Unknown';
-  const validityStatus = validity?.status || 'pending_validation';
 
   // Determine card style
   let cardClass = 'quiz-result-correct';
@@ -34,11 +30,6 @@ export function ResultQuestionCard({ result, index }) {
     cardClass = 'quiz-result-incorrect';
     headerIcon = '❌';
     headerText = 'Incorrect Answer';
-  }
-
-  if (!isScored && validityStatus !== 'verified') {
-    cardClass = 'quiz-result-unscored';
-    headerText += ' (Not Scored)';
   }
 
   return (
@@ -82,9 +73,6 @@ export function ResultQuestionCard({ result, index }) {
           </div>
         )}
       </div>
-
-      {/* Validity badge */}
-      <ValidityPanel validity={validity} />
 
       {/* Expanded details */}
       {expanded && (
@@ -144,7 +132,8 @@ function SourceBadge({ source }) {
     );
   }
 
-  if (source.sourceType === 'web' && source.verified && source.url) {
+  // Show web source links directly — no verification gate
+  if (source.sourceType === 'web' && source.url) {
     return (
       <div className="flex items-center gap-2 text-xs mt-1">
         <svg className="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,7 +151,7 @@ function SourceBadge({ source }) {
     );
   }
 
-  // AI-generated or unverified
+  // AI-generated
   return (
     <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
       <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

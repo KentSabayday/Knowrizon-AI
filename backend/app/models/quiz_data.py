@@ -109,7 +109,8 @@ class QuizData(db.Model):
         """
         Grade the quiz given user answers.
         
-        Returns full results including explanations, validity, and sources
+        All questions are scored regardless of validity status.
+        Returns full results including explanations and sources
         for ALL questions (both correct and incorrect).
         
         Args:
@@ -121,7 +122,6 @@ class QuizData(db.Model):
         questions = self.questions
         total = len(questions)
         correct = 0
-        scored_total = 0  # Only count verified/supported questions
         results = []
         
         for i, q in enumerate(questions):
@@ -129,17 +129,8 @@ class QuizData(db.Model):
             correct_index = q.get('correct_index', 0)
             is_correct = user_answer == correct_index
             
-            # Check validity status for scoring
-            validity = q.get('validity', {})
-            validity_status = validity.get('status', 'pending_validation')
-            
-            # Determine if this question should be scored
-            is_scored = validity_status in ('verified', 'partially_supported')
-            
-            if is_correct and is_scored:
+            if is_correct:
                 correct += 1
-            if is_scored:
-                scored_total += 1
             
             result_item = {
                 'questionId': q.get('id', f'q{i+1}'),
@@ -147,30 +138,23 @@ class QuizData(db.Model):
                 'userAnswer': user_answer,
                 'correctAnswer': correct_index,
                 'isCorrect': is_correct,
-                'isScored': is_scored,
                 'options': q.get('options', []),
-                # Always include explanation for all questions
                 'explanation': q.get('explanation', ''),
                 'learningExplanation': q.get('learningExplanation', ''),
                 'difficulty': q.get('difficulty', 'medium'),
                 'topic': q.get('topic', ''),
                 'conceptId': q.get('conceptId', ''),
-                'validity': validity,
                 'sources': q.get('sources', []),
             }
             
             results.append(result_item)
         
-        # Use scored_total for percentage to exclude unverified questions
-        effective_total = scored_total if scored_total > 0 else total
-        score = (correct / effective_total) if effective_total > 0 else 0.0
+        score = (correct / total) if total > 0 else 0.0
         
         return {
             'score': score,
             'correctCount': correct,
             'totalQuestions': total,
-            'scoredQuestions': scored_total,
-            'unscoredQuestions': total - scored_total,
             'results': results,
             'sourceMode': self.get_source_mode(),
             'contentMeta': self.get_content_meta(),
@@ -202,7 +186,6 @@ class QuizData(db.Model):
                 'difficulty': q.get('difficulty', 'medium'),
                 'topic': q.get('topic', ''),
                 'conceptId': q.get('conceptId', ''),
-                'validity': q.get('validity', {}),
                 'sources': q.get('sources', []),
             }
             if answers and i < len(answers):

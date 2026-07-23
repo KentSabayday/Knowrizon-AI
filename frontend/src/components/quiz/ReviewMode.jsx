@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { KnowrizonMascot, MASCOT_STATES } from '../ui/KnowrizonMascot';
 import { AnswerOption } from './AnswerOption';
-import { ValidityPanel } from './ValidityPanel';
+
 
 /**
  * ReviewMode — Study Review and Focused Retry modes.
@@ -105,7 +105,7 @@ export function ReviewMode({
                   {q.learningExplanation}
                 </div>
               )}
-              <ValidityPanel validity={q.validity} />
+
             </div>
           ))}
         </div>
@@ -212,7 +212,7 @@ export function ReviewMode({
                 <p className="text-sm text-cyan-300/80 mt-2">{currentQ.learningExplanation}</p>
               )}
             </div>
-            <ValidityPanel validity={currentQ.validity} />
+
           </motion.div>
         )}
       </motion.div>
