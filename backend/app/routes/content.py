@@ -1,5 +1,6 @@
 """Content routes for file uploads and content management."""
-from flask import Blueprint, request, jsonify, g
+import os
+from flask import Blueprint, request, jsonify, g, send_file
 from app.services.content_service import content_service
 from app.services.auth_service import auth_service
 from app.routes.auth import require_auth
@@ -351,3 +352,62 @@ def reprocess_content(content_id: str):
         'extractedText': processed_content.extracted_text[:500] if processed_content.extracted_text else '',
         'message': 'Content reprocessed successfully'
     }), 200
+
+
+@content_bp.route('/<content_id>/file', methods=['GET'])
+@require_auth
+@db_error_handler
+def serve_content_file(content_id: str):
+    """
+    Serve the original uploaded file for in-browser viewing.
+
+    Headers:
+        - Authorization: Bearer <token>
+
+    Path Parameters:
+        - content_id: ID of the content whose file to serve
+
+    Returns:
+        - 200: The file stream with correct Content-Type
+        - 401: Not authenticated
+        - 403: Not authorized
+        - 404: Content not found or file no longer on disk
+    """
+    user = g.current_user
+    user_id = user.id
+
+    content = content_service.get_content(content_id, user_id)
+    if not content:
+        content_exists = content_service.get_content(content_id)
+        if content_exists:
+            return jsonify({'error': 'Not authorized to access this content'}), 403
+        return jsonify({'error': 'Content not found'}), 404
+
+    file_path = content.file_path
+    if not file_path or not os.path.exists(file_path):
+        return jsonify({'error': 'File no longer available on disk'}), 404
+
+    # Map content_type to MIME
+    mime_map = {
+        'pdf': 'application/pdf',
+        'video': None,  # detect from extension
+    }
+    mime_type = mime_map.get(content.content_type)
+
+    if mime_type is None:
+        ext = os.path.splitext(content.filename)[1].lower()
+        video_mimes = {
+            '.mp4': 'video/mp4',
+            '.webm': 'video/webm',
+            '.mov': 'video/quicktime',
+            '.avi': 'video/x-msvideo',
+            '.mkv': 'video/x-matroska',
+        }
+        mime_type = video_mimes.get(ext, 'application/octet-stream')
+
+    return send_file(
+        file_path,
+        mimetype=mime_type,
+        as_attachment=False,
+        download_name=content.filename,
+    )

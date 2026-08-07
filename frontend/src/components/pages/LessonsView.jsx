@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   MessageSquare, BookOpen, FileText, Video, Search,
-  Sparkles, CheckCircle2, Loader2, AlertCircle, RotateCcw, X,
+  Sparkles, CheckCircle2, Loader2, AlertCircle, RotateCcw, X, Eye,
 } from 'lucide-react';
 import { ChatInterface } from '../chat/ChatInterface';
 import { ContentUploader } from '../content/ContentUploader';
+import { DocumentViewer } from '../content/DocumentViewer';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE } from '../../lib/api';
 
@@ -24,6 +25,7 @@ export function LessonsView({ conversationId: initialConversationId = null, onCo
   const [reprocessingId, setReprocessingId] = useState(null);
   const [currentConversationId, setCurrentConversationId] = useState(initialConversationId);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewingContent, setViewingContent] = useState(null);
 
   // Update conversation ID when prop changes (e.g., from History navigation)
   useEffect(() => {
@@ -304,21 +306,38 @@ export function LessonsView({ conversationId: initialConversationId = null, onCo
                             )}
                           </div>
 
-                          {/* Reprocess button */}
-                          {!isReady && (
+                          {/* Action buttons */}
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {/* View button */}
                             <button
-                              onClick={() => reprocessContent(content.id)}
-                              disabled={isProcessing}
-                              className="p-2 rounded-lg text-[#64748B] hover:text-[#22C7FF] hover:bg-[#22C7FF]/[0.06] transition-all disabled:opacity-50 flex-shrink-0"
-                              title="Extract text"
+                              onClick={() => setViewingContent({
+                                id: content.id,
+                                filename: content.filename || content.title || `Document ${index + 1}`,
+                                fileType: content.fileType || (isVideo ? 'video' : 'pdf'),
+                              })}
+                              className="p-2 rounded-lg text-[#64748B] hover:text-[#22C7FF] hover:bg-[#22C7FF]/[0.06] transition-all"
+                              title="View document"
+                              aria-label={`View ${content.filename || 'document'}`}
                             >
-                              {isProcessing ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <RotateCcw className="w-4 h-4" />
-                              )}
+                              <Eye className="w-4 h-4" />
                             </button>
-                          )}
+
+                            {/* Reprocess button */}
+                            {!isReady && (
+                              <button
+                                onClick={() => reprocessContent(content.id)}
+                                disabled={isProcessing}
+                                className="p-2 rounded-lg text-[#64748B] hover:text-[#22C7FF] hover:bg-[#22C7FF]/[0.06] transition-all disabled:opacity-50"
+                                title="Extract text"
+                              >
+                                {isProcessing ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <RotateCcw className="w-4 h-4" />
+                                )}
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         {/* Key points preview */}
@@ -358,6 +377,16 @@ export function LessonsView({ conversationId: initialConversationId = null, onCo
           </div>
         )}
       </div>
+
+      {/* Document Viewer Modal */}
+      {viewingContent && (
+        <DocumentViewer
+          contentId={viewingContent.id}
+          filename={viewingContent.filename}
+          fileType={viewingContent.fileType}
+          onClose={() => setViewingContent(null)}
+        />
+      )}
     </div>
   );
 }

@@ -50,13 +50,19 @@ export function QuizComponent({ topic: propTopic, contentId: propContentId, ques
     (propTopic || propContentId) ? STATES.CARD_INTRO : STATES.SETUP
   );
 
-  // Quiz config
+  // Quiz config — use both state and ref so generateQuiz always reads latest
   const [quizConfig, setQuizConfig] = useState({
     topic: propTopic || null,
     contentId: propContentId || null,
     sourceMode: propContentId ? 'uploaded_only' : 'topic_based',
   });
+  const quizConfigRef = useRef(quizConfig);
   const [questionCount, setQuestionCount] = useState(propCount || 10);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    quizConfigRef.current = quizConfig;
+  }, [quizConfig]);
 
   // Quiz data from API (no correct answers during active quiz)
   const [quizData, setQuizData] = useState(null); // { quizId, questions, ... }
@@ -84,23 +90,13 @@ export function QuizComponent({ topic: propTopic, contentId: propContentId, ques
 
   const handleSetupComplete = useCallback((config) => {
     setQuizConfig(config);
+    quizConfigRef.current = config; // Sync ref immediately
     setState(STATES.CARD_INTRO);
   }, []);
 
-  const handleCardIntroComplete = useCallback(() => {
-    if (propCount) {
-      // If questionCount was provided as prop, skip selector
-      generateQuiz(propCount);
-    } else {
-      setState(STATES.QUESTION_COUNT);
-    }
-  }, [propCount]);
-
-  const handleCountConfirm = useCallback(() => {
-    generateQuiz(questionCount);
-  }, [questionCount]);
-
   const generateQuiz = useCallback(async (count) => {
+    // Always read from ref to get the latest config
+    const config = quizConfigRef.current;
     setState(STATES.GENERATING);
     setError(null);
 
@@ -115,10 +111,10 @@ export function QuizComponent({ topic: propTopic, contentId: propContentId, ques
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          topic: quizConfig.topic,
-          contentId: quizConfig.contentId,
+          topic: config.topic,
+          contentId: config.contentId,
           questionCount: count,
-          sourceMode: quizConfig.sourceMode,
+          sourceMode: config.sourceMode,
         }),
         signal: controller.signal,
       });
@@ -148,7 +144,19 @@ export function QuizComponent({ topic: propTopic, contentId: propContentId, ques
       setError(err.message);
       setState(STATES.ERROR);
     }
-  }, [token, quizConfig]);
+  }, [token]);
+
+  const handleCardIntroComplete = useCallback(() => {
+    if (propCount) {
+      generateQuiz(propCount);
+    } else {
+      setState(STATES.QUESTION_COUNT);
+    }
+  }, [propCount, generateQuiz]);
+
+  const handleCountConfirm = useCallback(() => {
+    generateQuiz(questionCount);
+  }, [questionCount, generateQuiz]);
 
   const handleStartQuiz = useCallback(() => {
     setState(STATES.ACTIVE);

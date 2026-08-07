@@ -12,16 +12,26 @@ def require_auth(f):
     Decorator to require authentication for a route.
     
     Validates the Authorization header and sets g.current_user.
+    Falls back to ?token= query param for iframe/media sources
+    that cannot send custom headers.
     Returns 401 if authentication fails.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        token = None
+
+        # Primary: Authorization header
         auth_header = request.headers.get('Authorization')
-        
-        if not auth_header or not auth_header.startswith('Bearer '):
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+
+        # Fallback: query param (for iframe/video src that can't set headers)
+        if not token:
+            token = request.args.get('token')
+
+        if not token:
             return jsonify({'error': 'Authorization required'}), 401
         
-        token = auth_header.split(' ')[1]
         user = auth_service.validate_token(token)
         
         if not user:
