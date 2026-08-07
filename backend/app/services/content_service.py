@@ -92,6 +92,7 @@ class ContentService:
             content_type=content_type,
             file_path="",  # Will be set after saving
             file_size=len(file_data),
+            file_data=file_data,  # Persist raw bytes in DB for viewing across cold starts
             processing_status='pending'
         )
         db.session.add(content)

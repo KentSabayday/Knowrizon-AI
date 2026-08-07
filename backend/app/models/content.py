@@ -22,6 +22,7 @@ class Content(db.Model):
     content_type = db.Column(db.String(50), nullable=False)
     file_path = db.Column(db.String(500), nullable=False)
     file_size = db.Column(db.Integer, default=0)
+    file_data = db.Column(db.LargeBinary, nullable=True)  # Raw file bytes for persistent viewing
     title = db.Column(db.String(255), nullable=True)
     summary = db.Column(db.Text, nullable=True)
     extracted_text = db.Column(db.Text, nullable=True)  # Full extracted text from PDF/video

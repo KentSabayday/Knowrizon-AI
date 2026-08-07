@@ -41,22 +41,30 @@ export function DocumentViewer({ contentId, filename, fileType, onClose }) {
   // Pre-check if the file is accessible
   useEffect(() => {
     const checkFile = async () => {
+      const controller = new AbortController();
       try {
         const res = await fetch(fileUrl, {
-          method: 'HEAD',
+          method: 'GET',
           headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          signal: controller.signal,
         });
         if (!res.ok) {
-          const isJson = res.headers.get('content-type')?.includes('json');
-          if (isJson) {
+          // Try to read error from JSON body
+          try {
             const data = await res.json();
             setError(data.error || 'File not available');
-          } else {
+          } catch {
             setError('File is no longer available for viewing.');
           }
+        } else {
+          // File is accessible — abort the download immediately (we only needed the status)
+          controller.abort();
         }
-      } catch {
-        setError('Unable to reach the server.');
+      } catch (err) {
+        // AbortError is expected when we cancel after confirming availability
+        if (err.name !== 'AbortError') {
+          setError('Unable to reach the server.');
+        }
       } finally {
         setLoading(false);
       }

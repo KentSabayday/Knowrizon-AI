@@ -361,6 +361,9 @@ def serve_content_file(content_id: str):
     """
     Serve the original uploaded file for in-browser viewing.
 
+    Tries the local filesystem first (/tmp), then falls back to the
+    raw bytes stored in the database (file_data column).
+
     Headers:
         - Authorization: Bearer <token>
 
@@ -371,8 +374,10 @@ def serve_content_file(content_id: str):
         - 200: The file stream with correct Content-Type
         - 401: Not authenticated
         - 403: Not authorized
-        - 404: Content not found or file no longer on disk
+        - 404: Content not found or file data unavailable
     """
+    import io
+
     user = g.current_user
     user_id = user.id
 
@@ -383,11 +388,7 @@ def serve_content_file(content_id: str):
             return jsonify({'error': 'Not authorized to access this content'}), 403
         return jsonify({'error': 'Content not found'}), 404
 
-    file_path = content.file_path
-    if not file_path or not os.path.exists(file_path):
-        return jsonify({'error': 'File no longer available on disk'}), 404
-
-    # Map content_type to MIME
+    # Determine MIME type
     mime_map = {
         'pdf': 'application/pdf',
         'video': None,  # detect from extension
@@ -405,9 +406,24 @@ def serve_content_file(content_id: str):
         }
         mime_type = video_mimes.get(ext, 'application/octet-stream')
 
-    return send_file(
-        file_path,
-        mimetype=mime_type,
-        as_attachment=False,
-        download_name=content.filename,
-    )
+    # Strategy 1: serve from filesystem (fast, works within same invocation)
+    file_path = content.file_path
+    if file_path and os.path.exists(file_path):
+        return send_file(
+            file_path,
+            mimetype=mime_type,
+            as_attachment=False,
+            download_name=content.filename,
+        )
+
+    # Strategy 2: serve from DB-stored bytes (survives cold starts)
+    if content.file_data:
+        return send_file(
+            io.BytesIO(content.file_data),
+            mimetype=mime_type,
+            as_attachment=False,
+            download_name=content.filename,
+        )
+
+    return jsonify({'error': 'File no longer available'}), 404
+
