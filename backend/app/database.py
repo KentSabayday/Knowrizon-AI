@@ -99,3 +99,24 @@ def init_db(app):
     # Create all tables
     with app.app_context():
         db.create_all()
+        _run_migrations(app)
+
+
+def _run_migrations(app):
+    """
+    Lightweight migration runner for adding columns to existing tables.
+    db.create_all() only creates NEW tables — it cannot ALTER existing ones.
+    """
+    from sqlalchemy import text, inspect
+
+    with app.app_context():
+        inspector = inspect(db.engine)
+        columns = [col['name'] for col in inspector.get_columns('contents')]
+
+        if 'file_data' not in columns:
+            with db.engine.begin() as conn:
+                conn.execute(text(
+                    'ALTER TABLE contents ADD COLUMN file_data BYTEA'
+                ))
+            app.logger.info('Migration: added file_data column to contents table')
+
