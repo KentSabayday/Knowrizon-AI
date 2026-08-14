@@ -296,11 +296,9 @@ export function DashboardView({ onNavigate }) {
           </motion.div>
         )}
 
-        {/* ═══════ 2. AI Assistant + Missions Grid ═══════ */}
+        {/* ═══════ 2. AI Assistant Panel ═══════ */}
         {!isAnonymous && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {/* AI Assistant Panel (2/3) */}
-            <motion.div variants={fadeUp} className="lg:col-span-2 dash-card bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-3xl p-6 space-y-5">
+            <motion.div variants={fadeUp} className="dash-card bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-3xl p-6 space-y-5">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#22C7FF] to-[#5B5FFF] flex items-center justify-center">
                   <Sparkles className="w-4 h-4 text-white" />
@@ -344,17 +342,6 @@ export function DashboardView({ onNavigate }) {
                 ))}
               </div>
             </motion.div>
-
-            {/* Knowledge Galaxy (1/3) */}
-            <motion.div variants={fadeUp} className="dash-card bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-3xl p-6">
-              <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#5B5FFF]" />
-                Knowledge Galaxy
-              </h3>
-              <p className="text-[11px] text-[#64748B] mb-4">Your learning universe — planets grow as mastery increases</p>
-              <KnowledgeGalaxy />
-            </motion.div>
-          </div>
         )}
 
         {/* ═══════ 3. Quick Actions ═══════ */}
@@ -390,54 +377,14 @@ export function DashboardView({ onNavigate }) {
         {/* ═══════ 4. Knowledge Galaxy + Stats ═══════ */}
         {!isAnonymous && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Today's Missions */}
+            {/* Knowledge Galaxy */}
             <motion.div variants={fadeUp} className="dash-card bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-3xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Target className="w-4 h-4 text-[#22C7FF]" />
-                  Today&apos;s Missions
-                </h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#22C7FF]/10 text-[#22C7FF] font-medium">
-                  {completedMissions.size}/{DAILY_MISSIONS.length}
-                </span>
-              </div>
-
-              {/* Progress bar */}
-              <div className="h-1.5 bg-white/[0.04] rounded-full mb-4 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-[#22C7FF] to-[#5B5FFF] rounded-full dash-progress-fill"
-                  style={{ '--target-width': `${(completedMissions.size / DAILY_MISSIONS.length) * 100}%`, width: `${(completedMissions.size / DAILY_MISSIONS.length) * 100}%` }}
-                />
-              </div>
-
-              <ul className="space-y-2.5">
-                {DAILY_MISSIONS.map((mission) => {
-                  const done = completedMissions.has(mission.id);
-                  const Icon = mission.icon;
-                  return (
-                    <li key={mission.id}>
-                      <button
-                        onClick={() => toggleMission(mission.id)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
-                          done ? 'bg-[#22C55E]/[0.06] border border-[#22C55E]/[0.1]' : 'hover:bg-white/[0.02]'
-                        }`}
-                      >
-                        {done ? (
-                          <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0 dash-check-pop" />
-                        ) : (
-                          <Circle className="w-4 h-4 text-[#475569] flex-shrink-0" />
-                        )}
-                        <span className={`text-xs flex-1 ${done ? 'text-[#22C55E] line-through' : 'text-[#CBD5E1]'}`}>
-                          {mission.label}
-                        </span>
-                        <span className={`text-[10px] font-medium ${done ? 'text-[#22C55E]' : 'text-[#475569]'}`}>
-                          +{mission.xp} XP
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+              <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#5B5FFF]" />
+                Knowledge Galaxy
+              </h3>
+              <p className="text-[11px] text-[#64748B] mb-4">Your learning universe — planets grow as mastery increases</p>
+              <KnowledgeGalaxy />
             </motion.div>
 
             {/* Stats Overview */}
