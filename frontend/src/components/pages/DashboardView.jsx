@@ -272,7 +272,7 @@ export function DashboardView({ onNavigate }) {
               )}
             </div>
 
-            {/* CTA + seed */}
+            {/* CTA */}
             <div className="flex items-center gap-3 flex-shrink-0">
               <button
                 onClick={() => onNavigate?.('/lessons')}
@@ -281,15 +281,6 @@ export function DashboardView({ onNavigate }) {
                 Continue Learning
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </button>
-              {!isAnonymous && (
-                <button
-                  onClick={seedDemoData}
-                  disabled={isSeedingDemo}
-                  className="px-4 py-3 text-xs text-[#64748B] hover:text-white border border-white/[0.08] hover:border-white/[0.15] rounded-xl transition-all disabled:opacity-50"
-                >
-                  {isSeedingDemo ? 'Loading...' : 'Load Demo'}
-                </button>
-              )}
             </div>
           </div>
         </motion.div>
@@ -354,7 +345,52 @@ export function DashboardView({ onNavigate }) {
               </div>
             </motion.div>
 
-            {/* Today's Missions (1/3) */}
+            {/* Knowledge Galaxy (1/3) */}
+            <motion.div variants={fadeUp} className="dash-card bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-3xl p-6">
+              <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#5B5FFF]" />
+                Knowledge Galaxy
+              </h3>
+              <p className="text-[11px] text-[#64748B] mb-4">Your learning universe — planets grow as mastery increases</p>
+              <KnowledgeGalaxy />
+            </motion.div>
+          </div>
+        )}
+
+        {/* ═══════ 3. Quick Actions ═══════ */}
+        <motion.div variants={fadeUp}>
+          <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <Zap className="w-4 h-4 text-[#22C7FF]" />
+            Quick Actions
+          </h2>
+          <div className={`grid gap-3 ${isAnonymous ? 'grid-cols-1 sm:grid-cols-2 max-w-lg' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6'}`}>
+            {quickActions.map((action, i) => {
+              const Icon = action.icon;
+              return (
+                <motion.button
+                  key={action.label}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  onClick={() => action.path && onNavigate?.(action.path)}
+                  disabled={!action.path}
+                  className="group dash-card bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-4 text-left transition-all disabled:cursor-not-allowed"
+                >
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110" style={{ backgroundColor: `${action.color}12` }}>
+                    <Icon className="w-4.5 h-4.5" style={{ color: action.color }} />
+                  </div>
+                  <p className="text-xs font-medium text-white">{action.label}</p>
+                  <p className="text-[10px] text-[#64748B] mt-0.5">{action.desc}</p>
+                </motion.button>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        {/* ═══════ 4. Knowledge Galaxy + Stats ═══════ */}
+        {!isAnonymous && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Today's Missions */}
             <motion.div variants={fadeUp} className="dash-card bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-3xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-white flex items-center gap-2">
@@ -402,51 +438,6 @@ export function DashboardView({ onNavigate }) {
                   );
                 })}
               </ul>
-            </motion.div>
-          </div>
-        )}
-
-        {/* ═══════ 3. Quick Actions ═══════ */}
-        <motion.div variants={fadeUp}>
-          <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-[#22C7FF]" />
-            Quick Actions
-          </h2>
-          <div className={`grid gap-3 ${isAnonymous ? 'grid-cols-1 sm:grid-cols-2 max-w-lg' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6'}`}>
-            {quickActions.map((action, i) => {
-              const Icon = action.icon;
-              return (
-                <motion.button
-                  key={action.label}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  onClick={() => action.path && onNavigate?.(action.path)}
-                  disabled={!action.path}
-                  className="group dash-card bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-2xl p-4 text-left transition-all disabled:cursor-not-allowed"
-                >
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110" style={{ backgroundColor: `${action.color}12` }}>
-                    <Icon className="w-4.5 h-4.5" style={{ color: action.color }} />
-                  </div>
-                  <p className="text-xs font-medium text-white">{action.label}</p>
-                  <p className="text-[10px] text-[#64748B] mt-0.5">{action.desc}</p>
-                </motion.button>
-              );
-            })}
-          </div>
-        </motion.div>
-
-        {/* ═══════ 4. Knowledge Galaxy + Stats ═══════ */}
-        {!isAnonymous && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Knowledge Galaxy */}
-            <motion.div variants={fadeUp} className="dash-card bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-3xl p-6">
-              <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#5B5FFF]" />
-                Knowledge Galaxy
-              </h3>
-              <p className="text-[11px] text-[#64748B] mb-4">Your learning universe — planets grow as mastery increases</p>
-              <KnowledgeGalaxy />
             </motion.div>
 
             {/* Stats Overview */}
