@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * ResultQuestionCard — Individual result card with explicit ✅/❌ header,
@@ -6,6 +7,7 @@ import { useState } from 'react';
  */
 export function ResultQuestionCard({ result, index }) {
   const [expanded, setExpanded] = useState(false);
+  const { token } = useAuth();
 
   const {
     question,
@@ -86,8 +88,8 @@ export function ResultQuestionCard({ result, index }) {
               refLabel = new URL(source.referenceUrl).hostname.replace('www.', '');
             } catch { refLabel = 'View Reference'; }
           } else if (source?.sourceType === 'uploaded_content' && source?.contentId) {
-            // Uploaded document — link to the document viewer
-            refUrl = `/api/content/${source.contentId}/file`;
+            // Uploaded document — link to the document viewer with auth token
+            refUrl = `/api/content/${source.contentId}/file${token ? `?token=${token}` : ''}`;
             refLabel = source.filename || source.title || 'View Source Document';
           }
 

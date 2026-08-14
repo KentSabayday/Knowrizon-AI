@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { KnowrizonMascot, MASCOT_STATES } from '../ui/KnowrizonMascot';
 import { AnswerOption } from './AnswerOption';
+import { useAuth } from '../../context/AuthContext';
 
 
 /**
@@ -19,6 +20,7 @@ export function ReviewMode({
   const [retryAnswers, setRetryAnswers] = useState({});
   const [showFeedback, setShowFeedback] = useState({});
   const [mastered, setMastered] = useState(new Set());
+  const { token } = useAuth();
 
   const currentQ = questions[currentIndex];
   const total = questions.length;
@@ -104,7 +106,7 @@ export function ReviewMode({
                     refLabel = new URL(source.referenceUrl).hostname.replace('www.', '');
                   } catch { refLabel = 'View Reference'; }
                 } else if (source?.sourceType === 'uploaded_content' && source?.contentId) {
-                  refUrl = `/api/content/${source.contentId}/file`;
+                  refUrl = `/api/content/${source.contentId}/file${token ? `?token=${token}` : ''}`;
                   refLabel = source.filename || source.title || 'View Source Document';
                 }
 
