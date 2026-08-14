@@ -73,19 +73,46 @@ export function ResultQuestionCard({ result, index }) {
           </div>
         )}
         {/* Reference link */}
-        <div className="flex items-center gap-1.5 text-xs mt-1">
-          <svg className="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-          <a
-            href={`https://www.google.com/search?q=${encodeURIComponent(question + ' ' + correctAnswerText)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2 transition-colors"
-          >
-            View Reference
-          </a>
-        </div>
+        {(() => {
+          // Resolve the best reference URL
+          const source = sources[0];
+          let refUrl = '';
+          let refLabel = 'View Reference';
+
+          if (source?.referenceUrl) {
+            // AI provided a real reference URL (Wikipedia, docs, etc.)
+            refUrl = source.referenceUrl;
+            try {
+              refLabel = new URL(source.referenceUrl).hostname.replace('www.', '');
+            } catch { refLabel = 'View Reference'; }
+          } else if (source?.sourceType === 'uploaded_content' && source?.contentId) {
+            // Uploaded document — link to the document viewer
+            refUrl = `/api/content/${source.contentId}/file`;
+            refLabel = source.filename || source.title || 'View Source Document';
+          }
+
+          // Fallback: Google search
+          if (!refUrl) {
+            refUrl = `https://www.google.com/search?q=${encodeURIComponent(question + ' ' + correctAnswerText)}`;
+            refLabel = 'Search Reference';
+          }
+
+          return (
+            <div className="flex items-center gap-1.5 text-xs mt-1">
+              <svg className="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              <a
+                href={refUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2 transition-colors"
+              >
+                {refLabel}
+              </a>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Expanded details */}
