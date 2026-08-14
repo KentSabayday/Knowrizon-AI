@@ -296,8 +296,10 @@ export function DashboardView({ onNavigate }) {
           </motion.div>
         )}
 
-        {/* ═══════ 2. AI Assistant Panel ═══════ */}
+        {/* ═══════ 2. AI Assistant + Knowledge Galaxy ═══════ */}
         {!isAnonymous && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* AI Assistant Panel */}
             <motion.div variants={fadeUp} className="dash-card bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-3xl p-6 space-y-5">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#22C7FF] to-[#5B5FFF] flex items-center justify-center">
@@ -342,6 +344,17 @@ export function DashboardView({ onNavigate }) {
                 ))}
               </div>
             </motion.div>
+
+            {/* Knowledge Galaxy */}
+            <motion.div variants={fadeUp} className="dash-card bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-3xl p-6">
+              <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#5B5FFF]" />
+                Knowledge Galaxy
+              </h3>
+              <p className="text-[11px] text-[#64748B] mb-4">Your learning universe — planets grow as mastery increases</p>
+              <KnowledgeGalaxy />
+            </motion.div>
+          </div>
         )}
 
         {/* ═══════ 3. Quick Actions ═══════ */}
@@ -374,48 +387,35 @@ export function DashboardView({ onNavigate }) {
           </div>
         </motion.div>
 
-        {/* ═══════ 4. Knowledge Galaxy + Stats ═══════ */}
+        {/* ═══════ 4. Performance Stats ═══════ */}
         {!isAnonymous && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Knowledge Galaxy */}
-            <motion.div variants={fadeUp} className="dash-card bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-3xl p-6">
-              <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#5B5FFF]" />
-                Knowledge Galaxy
-              </h3>
-              <p className="text-[11px] text-[#64748B] mb-4">Your learning universe — planets grow as mastery increases</p>
-              <KnowledgeGalaxy />
-            </motion.div>
+          <motion.div variants={fadeUp} className="space-y-3">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-[#10B981]" />
+              Performance
+            </h3>
 
-            {/* Stats Overview */}
-            <motion.div variants={fadeUp} className="space-y-3">
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#10B981]" />
-                Performance
-              </h3>
-
-              {isLoading ? (
-                <div className="grid grid-cols-2 gap-3">
-                  {[0, 1, 2, 3].map((i) => (
-                    <div key={i} className="h-24 rounded-2xl bg-[#111827]/60 border border-white/[0.06] dash-shimmer" />
-                  ))}
-                </div>
-              ) : stats && stats.totalQuizzes > 0 ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <StatCard icon={Dumbbell} label="Quizzes" value={stats.totalQuizzes} color="#22C7FF" delay={0} />
-                  <StatCard icon={CheckCircle2} label="Success Rate" value={`${stats.successRate}%`} color="#10B981" delay={0.08} />
-                  <StatCard icon={Brain} label="Topics Mastered" value={stats.topicsMastered?.length || 0} color="#5B5FFF" delay={0.16} />
-                  <StatCard icon={Clock} label="Study Sessions" value={stats.totalQuizzes * 2} color="#F59E0B" delay={0.24} />
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-3xl">
-                  <span className="text-3xl mb-3">🚀</span>
-                  <p className="text-sm text-[#94A3B8] font-medium">No data yet</p>
-                  <p className="text-xs text-[#475569] mt-1 max-w-[200px]">Complete a quiz or load demo data to see your stats here</p>
-                </div>
-              )}
-            </motion.div>
-          </div>
+            {isLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="h-24 rounded-2xl bg-[#111827]/60 border border-white/[0.06] dash-shimmer" />
+                ))}
+              </div>
+            ) : stats && stats.totalQuizzes > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <StatCard icon={Dumbbell} label="Quizzes" value={stats.totalQuizzes} color="#22C7FF" delay={0} />
+                <StatCard icon={CheckCircle2} label="Success Rate" value={`${stats.successRate}%`} color="#10B981" delay={0.08} />
+                <StatCard icon={Brain} label="Topics Mastered" value={stats.topicsMastered?.length || 0} color="#5B5FFF" delay={0.16} />
+                <StatCard icon={Clock} label="Study Sessions" value={stats.totalQuizzes * 2} color="#F59E0B" delay={0.24} />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center bg-[#111827]/60 backdrop-blur-sm border border-white/[0.06] rounded-3xl">
+                <span className="text-3xl mb-3">🚀</span>
+                <p className="text-sm text-[#94A3B8] font-medium">No data yet</p>
+                <p className="text-xs text-[#475569] mt-1 max-w-[200px]">Complete a quiz to see your stats here</p>
+              </div>
+            )}
+          </motion.div>
         )}
 
         {/* ═══════ 5. Recent Activity Timeline ═══════ */}
