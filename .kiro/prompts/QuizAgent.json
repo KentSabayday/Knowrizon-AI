@@ -8,7 +8,12 @@
       {
         "id": "q1",
         "question": "A well-crafted question?",
-        "options": ["Option A", "Option B", "Option C", "Option D"],
+        "options": [
+          "Option A",
+          "Option B",
+          "Option C",
+          "Option D"
+        ],
         "correct_index": 0,
         "explanation": "Why A is correct and why others are not.",
         "learningExplanation": "The underlying concept and how to remember it.",

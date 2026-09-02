@@ -418,9 +418,8 @@ export function DashboardView({ onNavigate }) {
                     <li key={mission.id}>
                       <button
                         onClick={() => toggleMission(mission.id)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
-                          done ? 'bg-[#22C55E]/[0.06] border border-[#22C55E]/[0.1]' : 'hover:bg-white/[0.02]'
-                        }`}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${done ? 'bg-[#22C55E]/[0.06] border border-[#22C55E]/[0.1]' : 'hover:bg-white/[0.02]'
+                          }`}
                       >
                         {done ? (
                           <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0 dash-check-pop" />
@@ -485,11 +484,11 @@ export function DashboardView({ onNavigate }) {
 
               {(stats && stats.totalQuizzes > 0
                 ? [
-                    { time: 'Recent', label: `Completed ${stats.totalQuizzes} quizzes`, icon: Dumbbell, color: '#22C7FF' },
-                    { time: 'Recent', label: `Achieved ${stats.successRate}% accuracy`, icon: CheckCircle2, color: '#10B981' },
-                    { time: 'Recent', label: `Mastered ${stats.topicsMastered?.length || 0} topics`, icon: Brain, color: '#5B5FFF' },
-                    ...TIMELINE_EVENTS,
-                  ]
+                  { time: 'Recent', label: `Completed ${stats.totalQuizzes} quizzes`, icon: Dumbbell, color: '#22C7FF' },
+                  { time: 'Recent', label: `Achieved ${stats.successRate}% accuracy`, icon: CheckCircle2, color: '#10B981' },
+                  { time: 'Recent', label: `Mastered ${stats.topicsMastered?.length || 0} topics`, icon: Brain, color: '#5B5FFF' },
+                  ...TIMELINE_EVENTS,
+                ]
                 : TIMELINE_EVENTS
               ).map((event, i) => {
                 const Icon = event.icon;

@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knowrizon AI — Pre-Defense Presentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --white: #ffffff;
+  --off-white: #f8fafc;
+  --bg: #0c0f1a;
+  --surface: #161b2e;
+  --surface-2: #1e2540;
+  --glass: rgba(255,255,255,0.06);
+  --glass-border: rgba(255,255,255,0.1);
+  --glass-strong: rgba(255,255,255,0.12);
+  --indigo: #6366f1;
+  --indigo-light: #a5b4fc;
+  --cyan: #22d3ee;
+  --emerald: #34d399;
+  --amber: #fbbf24;
+  --rose: #fb7185;
+  --violet: #a78bfa;
+  --pink: #f472b6;
+  --text: #f1f5f9;
+  --text-2: #cbd5e1;
+  --text-3: #94a3b8;
+  --font: 'Outfit', -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+html, body { width: 100%; height: 100%; font-family: var(--font); background: var(--bg); color: var(--text); overflow: hidden; -webkit-font-smoothing: antialiased; }
+
+/* ═══ PARTICLES ═══ */
+#particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+/* ═══ SLIDE ENGINE ═══ */
+.presentation { width: 100%; height: 100%; position: relative; z-index: 1; }
+
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 50px 70px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1), transform 0.6s cubic-bezier(0.4,0,0.2,1);
+  transform: scale(0.92) translateY(30px);
+  overflow-y: auto;
+}
+.slide.active { opacity: 1; pointer-events: all; transform: scale(1) translateY(0); }
+
+/* ═══ PROGRESS ═══ */
+.progress-wrap { position: fixed; top: 0; left: 0; right: 0; height: 4px; background: rgba(255,255,255,0.05); z-index: 200; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--indigo), var(--cyan), var(--emerald)); transition: width 0.5s ease; border-radius: 0 2px 2px 0; box-shadow: 0 0 20px rgba(99,102,241,0.5); }
+
+/* ═══ CONTROLS ═══ */
+.nav-controls { position: fixed; bottom: 24px; right: 30px; display: flex; gap: 8px; z-index: 200; }
+.nav-btn {
+  width: 48px; height: 48px; border-radius: 14px; border: 1px solid var(--glass-border);
+  background: rgba(22,27,46,0.85); backdrop-filter: blur(20px); color: var(--text-2);
+  cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px;
+  transition: all 0.25s ease;
+}
+.nav-btn:hover { background: var(--indigo); color: white; border-color: var(--indigo); transform: scale(1.08); box-shadow: 0 0 24px rgba(99,102,241,0.4); }
+
+.slide-num { position: fixed; bottom: 32px; left: 30px; font-size: 14px; color: var(--text-3); font-family: var(--mono); z-index: 200; font-weight: 500; }
+
+.key-bar { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); display: flex; gap: 18px; z-index: 200; }
+.key-bar span { font-size: 11px; color: var(--text-3); display: flex; align-items: center; gap: 5px; opacity: 0.6; }
+.key-bar kbd { background: var(--surface); border: 1px solid var(--glass-border); border-radius: 5px; padding: 2px 7px; font-family: var(--mono); font-size: 10px; }
+
+/* ═══ FLOATING SHAPES (3D) ═══ */
+.float-shape {
+  position: absolute; border-radius: 50%; pointer-events: none; z-index: 0;
+  animation: floatY 6s ease-in-out infinite;
+}
+@keyframes floatY { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-25px) rotate(10deg); } }
+@keyframes floatY2 { 0%,100% { transform: translateY(0) rotate(0deg) scale(1); } 50% { transform: translateY(-35px) rotate(-8deg) scale(1.05); } }
+@keyframes spin3d { 0% { transform: rotateX(0) rotateY(0) rotateZ(0); } 100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg); } }
+@keyframes pulse-glow { 0%,100% { opacity: 0.15; transform: scale(1); } 50% { opacity: 0.3; transform: scale(1.1); } }
+@keyframes orbit { 0% { transform: rotate(0deg) translateX(120px) rotate(0deg); } 100% { transform: rotate(360deg) translateX(120px) rotate(-360deg); } }
+@keyframes slideIn { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideInLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+@keyframes morphBlob { 0%,100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; } 50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; } }
+@keyframes countUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══ GLASS CARD ═══ */
+.glass {
+  background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px;
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  padding: 30px; transition: all 0.35s ease; position: relative; overflow: hidden;
+}
+.glass::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+}
+.glass:hover { background: var(--glass-strong); border-color: rgba(99,102,241,0.3); transform: translateY(-4px) scale(1.01); box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 30px rgba(99,102,241,0.1); }
+
+/* ═══ IMAGE CONTAINERS ═══ */
+.img-showcase {
+  width: 100%; max-width: 700px; border-radius: 20px; overflow: hidden;
+  border: 1px solid var(--glass-border); box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+  position: relative;
+}
+.img-showcase img { width: 100%; height: auto; display: block; }
+.img-showcase .img-glow {
+  position: absolute; inset: -2px; border-radius: 22px; z-index: -1;
+  background: linear-gradient(135deg, var(--indigo), var(--cyan), var(--violet));
+  opacity: 0.4; filter: blur(20px);
+}
+
+.img-float {
+  border-radius: 18px; overflow: hidden; border: 1px solid var(--glass-border);
+  box-shadow: 0 15px 50px rgba(0,0,0,0.4); animation: floatY 7s ease-in-out infinite;
+}
+.img-float img { width: 100%; height: auto; display: block; }
+
+/* ═══ TYPOGRAPHY ═══ */
+.section-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 16px; border-radius: 100px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(34,211,238,0.1));
+  border: 1px solid rgba(99,102,241,0.2);
+  font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 2.5px;
+  color: var(--indigo-light); margin-bottom: 20px;
+}
+.section-tag .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--indigo); animation: pulse-glow 2s ease-in-out infinite; }
+
+.big-title {
+  font-size: 64px; font-weight: 900; line-height: 1.08; letter-spacing: -2.5px;
+  text-align: center; margin-bottom: 16px;
+}
+.big-title .grad { background: linear-gradient(135deg, var(--indigo-light), var(--cyan), var(--emerald)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+.heading {
+  font-size: 44px; font-weight: 800; line-height: 1.12; letter-spacing: -1.5px;
+  text-align: center; margin-bottom: 14px;
+}
+.heading .grad { background: linear-gradient(135deg, var(--indigo-light), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+.subtitle { font-size: 18px; color: var(--text-2); text-align: center; max-width: 680px; line-height: 1.65; margin-bottom: 36px; font-weight: 400; }
+
+/* ═══ LAYOUTS ═══ */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 920px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; width: 100%; max-width: 960px; }
+.grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; width: 100%; max-width: 980px; }
+.split { display: flex; gap: 40px; width: 100%; max-width: 960px; align-items: center; }
+.split-content { flex: 1; }
+.split-visual { flex: 1; display: flex; justify-content: center; }
+
+/* ═══ STAT CARDS ═══ */
+.stat-card { text-align: center; padding: 24px 16px; }
+.stat-num { font-size: 52px; font-weight: 900; line-height: 1; margin-bottom: 6px; letter-spacing: -2px; }
+.stat-num.c1 { background: linear-gradient(135deg, var(--indigo-light), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.stat-num.c2 { background: linear-gradient(135deg, var(--cyan), var(--emerald)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.stat-num.c3 { background: linear-gradient(135deg, var(--amber), var(--rose)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.stat-num.c4 { background: linear-gradient(135deg, var(--violet), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.stat-label { font-size: 13px; color: var(--text-3); font-weight: 500; }
+
+/* ═══ FEATURE CHIP ═══ */
+.chip {
+  display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px;
+  background: var(--glass); border: 1px solid var(--glass-border); border-radius: 14px;
+  font-size: 15px; color: var(--text-2); font-weight: 500;
+  transition: all 0.3s ease; width: 100%; text-align: left;
+}
+.chip:hover { background: var(--glass-strong); transform: translateX(4px); border-color: rgba(99,102,241,0.25); }
+.chip .icon { font-size: 22px; }
+.chip strong { color: var(--text); }
+
+/* ═══ TIMELINE ═══ */
+.tl-row { display: flex; gap: 16px; width: 100%; max-width: 1000px; }
+.tl-card { flex: 1; padding: 24px 20px; text-align: left; position: relative; }
+.tl-card::after { content: ''; position: absolute; top: 0; left: 20px; right: 20px; height: 3px; border-radius: 2px; }
+.tl-card:nth-child(1)::after { background: linear-gradient(90deg, var(--indigo), var(--indigo-light)); }
+.tl-card:nth-child(2)::after { background: linear-gradient(90deg, var(--cyan), #67e8f9); }
+.tl-card:nth-child(3)::after { background: linear-gradient(90deg, var(--amber), #fde68a); }
+.tl-card:nth-child(4)::after { background: linear-gradient(90deg, var(--emerald), #6ee7b7); }
+.tl-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; margin-top: 8px; }
+.tl-card:nth-child(1) .tl-tag { color: var(--indigo-light); }
+.tl-card:nth-child(2) .tl-tag { color: var(--cyan); }
+.tl-card:nth-child(3) .tl-tag { color: var(--amber); }
+.tl-card:nth-child(4) .tl-tag { color: var(--emerald); }
+.tl-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--text); line-height: 1.3; }
+.tl-list { list-style: none; }
+.tl-list li { font-size: 12.5px; color: var(--text-3); padding: 3px 0; padding-left: 14px; position: relative; line-height: 1.5; }
+.tl-list li::before { content: ''; position: absolute; left: 0; top: 10px; width: 5px; height: 5px; border-radius: 50%; background: var(--text-3); opacity: 0.5; }
+
+/* ═══ AGENT CARDS ═══ */
+.agent { padding: 28px; text-align: left; position: relative; overflow: hidden; }
+.agent .agent-glow { position: absolute; top: -30px; right: -30px; width: 120px; height: 120px; border-radius: 50%; filter: blur(50px); opacity: 0.15; }
+.agent.tutor .agent-glow { background: var(--indigo); }
+.agent.quiz .agent-glow { background: var(--amber); }
+.agent.content .agent-glow { background: var(--emerald); }
+.agent-badge { display: inline-block; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; }
+.agent.tutor .agent-badge { background: rgba(99,102,241,0.15); color: var(--indigo-light); }
+.agent.quiz .agent-badge { background: rgba(251,191,36,0.15); color: var(--amber); }
+.agent.content .agent-badge { background: rgba(52,211,153,0.15); color: var(--emerald); }
+.agent h3 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.agent p { font-size: 13px; color: var(--text-3); line-height: 1.6; margin-bottom: 16px; }
+.agent-feat { list-style: none; }
+.agent-feat li { font-size: 13px; color: var(--text-2); padding: 4px 0; display: flex; align-items: center; gap: 8px; }
+.agent-feat li .af-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.agent.tutor .af-dot { background: var(--indigo-light); }
+.agent.quiz .af-dot { background: var(--amber); }
+.agent.content .af-dot { background: var(--emerald); }
+
+/* ═══ TECH TABLE ═══ */
+.tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; max-width: 880px; }
+.tech-item { display: flex; align-items: center; gap: 16px; padding: 18px 22px; }
+.tech-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.tech-item:nth-child(1) .tech-icon { background: rgba(99,102,241,0.15); }
+.tech-item:nth-child(2) .tech-icon { background: rgba(34,211,238,0.15); }
+.tech-item:nth-child(3) .tech-icon { background: rgba(251,191,36,0.15); }
+.tech-item:nth-child(4) .tech-icon { background: rgba(52,211,153,0.15); }
+.tech-item:nth-child(5) .tech-icon { background: rgba(251,113,133,0.15); }
+.tech-item:nth-child(6) .tech-icon { background: rgba(167,139,250,0.15); }
+.tech-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.tech-desc { font-size: 12px; color: var(--text-3); }
+
+/* ═══ 3D ORBITING ELEMENT ═══ */
+.orbit-container { position: relative; width: 280px; height: 280px; perspective: 800px; }
+.orbit-ring { position: absolute; inset: 0; border: 1px solid rgba(99,102,241,0.2); border-radius: 50%; animation: spin3d 20s linear infinite; }
+.orbit-ring:nth-child(2) { inset: 20px; border-color: rgba(34,211,238,0.15); animation-duration: 25s; animation-direction: reverse; }
+.orbit-ring:nth-child(3) { inset: 40px; border-color: rgba(52,211,153,0.1); animation-duration: 30s; }
+.orbit-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 48px; z-index: 2; }
+.orbit-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; }
+.orbit-dot:nth-child(4) { top: -5px; left: 50%; background: var(--indigo); box-shadow: 0 0 12px var(--indigo); }
+.orbit-dot:nth-child(5) { bottom: -5px; right: 30%; background: var(--cyan); box-shadow: 0 0 12px var(--cyan); }
+.orbit-dot:nth-child(6) { top: 40%; left: -5px; background: var(--emerald); box-shadow: 0 0 12px var(--emerald); }
+
+/* ═══ BLOB ═══ */
+.morph-blob { position: absolute; width: 350px; height: 350px; animation: morphBlob 8s ease-in-out infinite; filter: blur(80px); opacity: 0.12; pointer-events: none; z-index: 0; }
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 900px) {
+  .slide { padding: 30px 24px; }
+  .big-title { font-size: 42px; }
+  .heading { font-size: 32px; }
+  .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+  .tl-row { flex-direction: column; }
+  .split { flex-direction: column; }
+}
+
+.slide::-webkit-scrollbar { width: 3px; }
+.slide::-webkit-scrollbar-track { background: transparent; }
+.slide::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+<div class="progress-wrap"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="presentation" id="pres">
+
+<!-- ═══════════ SLIDE 1: HERO ═══════════ -->
+<div class="slide active">
+  <div class="morph-blob" style="background:var(--indigo);top:-100px;right:-50px;"></div>
+  <div class="morph-blob" style="background:var(--cyan);bottom:-80px;left:-60px;animation-delay:-4s;"></div>
+  <div class="img-showcase" style="max-width:600px;margin-bottom:32px;animation:scaleIn 1s ease">
+    <div class="img-glow"></div>
+    <img src="assets/presentation/hero.jpg" alt="Knowrizon AI">
+  </div>
+  <div class="big-title" style="animation:slideIn 0.8s ease 0.2s both">
+    <span class="grad">Knowrizon</span> AI
+  </div>
+  <p style="font-size:22px;color:var(--text-2);margin-bottom:8px;font-weight:400;animation:slideIn 0.8s ease 0.4s both">Your Personal AI Tutor — Learn Smarter</p>
+  <p style="font-size:14px;color:var(--text-3);max-width:600px;text-align:center;line-height:1.6;animation:slideIn 0.8s ease 0.6s both">An AI-Powered Adaptive Tutoring Platform for Personalized Learning, Automated Content Processing, and Intelligent Assessment Generation</p>
+  <div style="margin-top:32px;text-align:center;animation:slideIn 0.8s ease 0.8s both">
+    <p style="font-size:14px;color:var(--indigo-light);font-weight:600;letter-spacing:1px;text-transform:uppercase">Pre-Defense Presentation</p>
+    <p style="font-size:13px;color:var(--text-3);margin-top:6px">Bachelor of Science in Information Technology • Academic Year 2025–2026</p>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 2: AGENDA ═══════════ -->
+<div class="slide">
+  <div class="section-tag"><span class="dot"></span>Overview</div>
+  <div class="heading">What We'll <span class="grad">Cover Today</span></div>
+  <p class="subtitle">A comprehensive walkthrough of Knowrizon's development journey</p>
+  <div class="grid-3">
+    <div class="glass" style="text-align:center;padding:28px 20px"><span style="font-size:36px;display:block;margin-bottom:12px">📋</span><div style="font-size:15px;font-weight:600;margin-bottom:6px">Introduction</div><div style="font-size:13px;color:var(--text-3)">Background, problem, and objectives</div></div>
+    <div class="glass" style="text-align:center;padding:28px 20px"><span style="font-size:36px;display:block;margin-bottom:12px">⚙️</span><div style="font-size:15px;font-weight:600;margin-bottom:6px">Methodology</div><div style="font-size:13px;color:var(--text-3)">Agile Scrum Sprint Framework</div></div>
+    <div class="glass" style="text-align:center;padding:28px 20px"><span style="font-size:36px;display:block;margin-bottom:12px">🏗️</span><div style="font-size:15px;font-weight:600;margin-bottom:6px">Architecture</div><div style="font-size:13px;color:var(--text-3)">System design and tech stack</div></div>
+    <div class="glass" style="text-align:center;padding:28px 20px"><span style="font-size:36px;display:block;margin-bottom:12px">🤖</span><div style="font-size:15px;font-weight:600;margin-bottom:6px">AI Agents</div><div style="font-size:13px;color:var(--text-3)">TutorAgent, QuizAgent, ContentAgent</div></div>
+    <div class="glass" style="text-align:center;padding:28px 20px"><span style="font-size:36px;display:block;margin-bottom:12px">✨</span><div style="font-size:15px;font-weight:600;margin-bottom:6px">Features</div><div style="font-size:13px;color:var(--text-3)">12 integrated platform features</div></div>
+    <div class="glass" style="text-align:center;padding:28px 20px"><span style="font-size:36px;display:block;margin-bottom:12px">🎯</span><div style="font-size:15px;font-weight:600;margin-bottom:6px">Conclusion</div><div style="font-size:13px;color:var(--text-3)">Summary and recommendations</div></div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 3: BACKGROUND ═══════════ -->
+<div class="slide">
+  <div class="morph-blob" style="background:var(--rose);top:10%;right:5%;width:250px;height:250px;"></div>
+  <div class="section-tag"><span class="dot"></span>Introduction</div>
+  <div class="heading">Background of <span class="grad">the Study</span></div>
+  <p class="subtitle">Understanding the challenges that motivated Knowrizon</p>
+  <div style="display:flex;flex-direction:column;gap:12px;max-width:800px;width:100%">
+    <div class="chip"><span class="icon">⚡</span><span>Traditional classrooms follow a <strong>one-size-fits-all approach</strong> that fails to accommodate diverse learning needs</span></div>
+    <div class="chip"><span class="icon">⚡</span><span>Students lack <strong>immediate, personalized academic support</strong> outside of classroom hours</span></div>
+    <div class="chip"><span class="icon">⚡</span><span>Manual creation of <strong>assessments and study materials</strong> is time-intensive for educators</span></div>
+    <div class="chip"><span class="icon">⚡</span><span>Advances in <strong>AI and large language models</strong> enable intelligent tutoring systems</span></div>
+    <div class="chip"><span class="icon">⚡</span><span>Growing need for platforms integrating <strong>content processing, tutoring, and assessment</strong></span></div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 4: PROBLEM ═══════════ -->
+<div class="slide">
+  <div class="morph-blob" style="background:var(--violet);bottom:10%;left:5%;width:300px;height:300px;"></div>
+  <div class="section-tag"><span class="dot"></span>Introduction</div>
+  <div class="heading">Statement of <span class="grad">the Problem</span></div>
+  <p class="subtitle">The research seeks to address the following questions</p>
+  <div class="grid-2">
+    <div class="glass" style="padding:28px">
+      <div style="font-size:32px;font-weight:900;color:var(--indigo-light);margin-bottom:12px;font-family:var(--mono)">01</div>
+      <p style="font-size:15px;color:var(--text-2);line-height:1.65">How can an AI platform provide <strong style="color:var(--text)">personalized, context-aware tutoring</strong> that adapts to individual student needs?</p>
+    </div>
+    <div class="glass" style="padding:28px">
+      <div style="font-size:32px;font-weight:900;color:var(--cyan);margin-bottom:12px;font-family:var(--mono)">02</div>
+      <p style="font-size:15px;color:var(--text-2);line-height:1.65">How can <strong style="color:var(--text)">automated content processing</strong> transform uploaded materials into structured educational resources?</p>
+    </div>
+    <div class="glass" style="padding:28px">
+      <div style="font-size:32px;font-weight:900;color:var(--amber);margin-bottom:12px;font-family:var(--mono)">03</div>
+      <p style="font-size:15px;color:var(--text-2);line-height:1.65">How can <strong style="color:var(--text)">intelligent assessment generation</strong> produce diverse quizzes with immediate explanatory feedback?</p>
+    </div>
+    <div class="glass" style="padding:28px">
+      <div style="font-size:32px;font-weight:900;color:var(--emerald);margin-bottom:12px;font-family:var(--mono)">04</div>
+      <p style="font-size:15px;color:var(--text-2);line-height:1.65">How can a <strong style="color:var(--text)">unified platform</strong> integrate AI tutoring, assessment, analytics, and social learning?</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 5: OBJECTIVES ═══════════ -->
+<div class="slide">
+  <div class="section-tag"><span class="dot"></span>Introduction</div>
+  <div class="heading">Objectives of <span class="grad">the Study</span></div>
+  <p class="subtitle">To develop Knowrizon — an AI-powered adaptive tutoring platform</p>
+  <div style="display:flex;flex-direction:column;gap:12px;max-width:800px;width:100%">
+    <div class="chip"><span class="icon">🎯</span><span>Design an <strong>AI-powered adaptive tutoring system</strong> with Socratic questioning and adaptive strategies</span></div>
+    <div class="chip"><span class="icon">🎯</span><span>Implement <strong>automated content processing</strong> for PDFs, images, and videos</span></div>
+    <div class="chip"><span class="icon">🎯</span><span>Develop <strong>intelligent quiz generation</strong> with concept tagging and explanatory feedback</span></div>
+    <div class="chip"><span class="icon">🎯</span><span>Create a <strong>learning analytics dashboard</strong> for progress and performance monitoring</span></div>
+    <div class="chip"><span class="icon">🎯</span><span>Integrate <strong>social learning features</strong> — friends, messaging, study groups, voice/video calls</span></div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 6: METHODOLOGY ═══════════ -->
+<div class="slide">
+  <div class="section-tag"><span class="dot"></span>Methodology</div>
+  <div class="heading">Agile Scrum <span class="grad">Sprint Framework</span></div>
+  <p class="subtitle">Iterative development with continuous feedback and incremental delivery</p>
+  <div class="split">
+    <div class="split-content">
+      <div class="glass" style="margin-bottom:14px;padding:22px">
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Why Agile Scrum?</div>
+        <div style="font-size:13px;color:var(--text-3);line-height:1.7">
+          • AI components require iterative prompt engineering<br>
+          • User features demand continuous usability testing<br>
+          • Modular system supports parallel sprint development<br>
+          • Early issue detection through working increments
+        </div>
+      </div>
+      <div class="glass" style="padding:22px">
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px">Structure</div>
+        <div style="font-size:13px;color:var(--text-3);line-height:1.7">
+          • <strong style="color:var(--indigo-light)">4 Sprints</strong> — 1–2 weeks each<br>
+          • <strong style="color:var(--cyan)">12 Features</strong> in product backlog<br>
+          • <strong style="color:var(--amber)">Sprint Reviews</strong> after each iteration<br>
+          • <strong style="color:var(--emerald)">Retrospectives</strong> for improvement
+        </div>
+      </div>
+    </div>
+    <div class="split-visual">
+      <div class="img-float" style="max-width:420px">
+        <img src="assets/presentation/agile.jpg" alt="Agile Scrum">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 7: SPRINT TIMELINE ═══════════ -->
+<div class="slide">
+  <div class="section-tag"><span class="dot"></span>Methodology</div>
+  <div class="heading">Sprint <span class="grad">Timeline</span></div>
+  <p class="subtitle">Four focused sprints delivering incremental, testable functionality</p>
+  <div class="tl-row">
+    <div class="glass tl-card"><div class="tl-tag">Sprint 1</div><div class="tl-title">System Design & Core Development</div><ul class="tl-list"><li>System architecture design</li><li>Database schema (18 models)</li><li>User authentication (3 modes)</li><li>Document upload pipeline</li><li>UI foundation & theming</li></ul></div>
+    <div class="glass tl-card"><div class="tl-tag">Sprint 2</div><div class="tl-title">AI Agent Development</div><ul class="tl-list"><li>AgentOrchestrator service</li><li>TutorAgent implementation</li><li>QuizAgent implementation</li><li>ContentAgent implementation</li><li>Nebius AI API integration</li></ul></div>
+    <div class="glass tl-card"><div class="tl-tag">Sprint 3</div><div class="tl-title">Adaptive Tutoring & Assessment</div><ul class="tl-list"><li>Chat interface with streaming</li><li>Context-aware tutoring</li><li>Quiz generation system</li><li>Immediate feedback & scoring</li><li>Conversation history</li></ul></div>
+    <div class="glass tl-card"><div class="tl-tag">Sprint 4</div><div class="tl-title">Analytics, Social & Integration</div><ul class="tl-list"><li>Learning analytics dashboard</li><li>Friends & direct messaging</li><li>Study groups</li><li>Voice/video calling (WebRTC)</li><li>Full system integration</li></ul></div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 8: TECH STACK ═══════════ -->
+<div class="slide">
+  <div class="morph-blob" style="background:var(--cyan);top:20%;left:10%;width:250px;height:250px;"></div>
+  <div class="section-tag"><span class="dot"></span>Architecture</div>
+  <div class="heading">Technology <span class="grad">Stack</span></div>
+  <p class="subtitle">Modern, production-grade technologies for performance and scalability</p>
+  <div class="split">
+    <div style="flex:1">
+      <div class="tech-grid" style="grid-template-columns:1fr">
+        <div class="glass tech-item"><div class="tech-icon">⚛️</div><div><div class="tech-name">React 19 + Vite + Tailwind CSS 4</div><div class="tech-desc">Component-based UI with fast HMR and responsive design</div></div></div>
+        <div class="glass tech-item"><div class="tech-icon">🐍</div><div><div class="tech-name">Python Flask + SQLAlchemy</div><div class="tech-desc">RESTful API with ORM-based data access layer</div></div></div>
+        <div class="glass tech-item"><div class="tech-icon">🧠</div><div><div class="tech-name">Nebius AI API (OpenAI SDK)</div><div class="tech-desc">Text generation, vision analysis, streaming responses</div></div></div>
+        <div class="glass tech-item"><div class="tech-icon">🗄️</div><div><div class="tech-name">SQLite → PostgreSQL (Supabase)</div><div class="tech-desc">Progressive infrastructure with production persistence</div></div></div>
+        <div class="glass tech-item"><div class="tech-icon">📡</div><div><div class="tech-name">Pusher Channels + WebRTC</div><div class="tech-desc">Real-time messaging and peer-to-peer calling</div></div></div>
+        <div class="glass tech-item"><div class="tech-icon">🚀</div><div><div class="tech-name">Vercel (Serverless)</div><div class="tech-desc">CDN-backed static assets + serverless Python functions</div></div></div>
+      </div>
+    </div>
+    <div style="flex:0.8;display:flex;justify-content:center">
+      <div class="img-float" style="max-width:380px;animation-delay:-2s">
+        <img src="assets/presentation/architecture.jpg" alt="Architecture">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 9: SYSTEM ARCHITECTURE ═══════════ -->
+<div class="slide">
+  <div class="section-tag"><span class="dot"></span>Architecture</div>
+  <div class="heading">System <span class="grad">Architecture</span></div>
+  <p class="subtitle">Client-server architecture with clear separation of concerns</p>
+  <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:900px">
+    <div class="glass" style="display:flex;align-items:center;gap:16px;padding:16px 24px;border-left:3px solid var(--indigo)">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--indigo-light);width:100px;flex-shrink:0">Frontend</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(99,102,241,0.12);color:var(--indigo-light);font-family:var(--mono)">React 19</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(99,102,241,0.12);color:var(--indigo-light);font-family:var(--mono)">Vite</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(99,102,241,0.12);color:var(--indigo-light);font-family:var(--mono)">Tailwind</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(99,102,241,0.12);color:var(--indigo-light);font-family:var(--mono)">Framer Motion</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(99,102,241,0.12);color:var(--indigo-light);font-family:var(--mono)">Pusher.js</span></div>
+    </div>
+    <div style="text-align:center;font-size:18px;color:var(--text-3);opacity:0.4">▼</div>
+    <div class="glass" style="display:flex;align-items:center;gap:16px;padding:16px 24px;border-left:3px solid var(--cyan)">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);width:100px;flex-shrink:0">Backend</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(34,211,238,0.12);color:var(--cyan);font-family:var(--mono)">Flask</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(34,211,238,0.12);color:var(--cyan);font-family:var(--mono)">12 Routes</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(34,211,238,0.12);color:var(--cyan);font-family:var(--mono)">Auth</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(34,211,238,0.12);color:var(--cyan);font-family:var(--mono)">CORS</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(34,211,238,0.12);color:var(--cyan);font-family:var(--mono)">Error Handling</span></div>
+    </div>
+    <div style="text-align:center;font-size:18px;color:var(--text-3);opacity:0.4">▼</div>
+    <div class="glass" style="display:flex;align-items:center;gap:16px;padding:16px 24px;border-left:3px solid var(--amber)">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--amber);width:100px;flex-shrink:0">AI Layer</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(251,191,36,0.12);color:var(--amber);font-family:var(--mono)">Orchestrator</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(251,191,36,0.12);color:var(--amber);font-family:var(--mono)">TutorAgent</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(251,191,36,0.12);color:var(--amber);font-family:var(--mono)">QuizAgent</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(251,191,36,0.12);color:var(--amber);font-family:var(--mono)">ContentAgent</span></div>
+    </div>
+    <div style="text-align:center;font-size:18px;color:var(--text-3);opacity:0.4">▼</div>
+    <div class="glass" style="display:flex;align-items:center;gap:16px;padding:16px 24px;border-left:3px solid var(--emerald)">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--emerald);width:100px;flex-shrink:0">Data</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(52,211,153,0.12);color:var(--emerald);font-family:var(--mono)">SQLAlchemy</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(52,211,153,0.12);color:var(--emerald);font-family:var(--mono)">18 Models</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(52,211,153,0.12);color:var(--emerald);font-family:var(--mono)">PostgreSQL</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(52,211,153,0.12);color:var(--emerald);font-family:var(--mono)">Supabase</span></div>
+    </div>
+    <div style="text-align:center;font-size:18px;color:var(--text-3);opacity:0.4">▼</div>
+    <div class="glass" style="display:flex;align-items:center;gap:16px;padding:16px 24px;border-left:3px solid var(--rose)">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--rose);width:100px;flex-shrink:0">Deploy</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(251,113,133,0.12);color:var(--rose);font-family:var(--mono)">Vercel CDN</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(251,113,133,0.12);color:var(--rose);font-family:var(--mono)">Serverless</span><span style="padding:5px 12px;border-radius:8px;font-size:12px;background:rgba(251,113,133,0.12);color:var(--rose);font-family:var(--mono)">Pusher</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 10: AI AGENTS ═══════════ -->
+<div class="slide">
+  <div class="morph-blob" style="background:var(--amber);top:15%;right:8%;width:280px;height:280px;"></div>
+  <div class="section-tag"><span class="dot"></span>Core Innovation</div>
+  <div class="heading">AI <span class="grad">Agents</span></div>
+  <p class="subtitle">Three specialized agents powered by Nebius AI with JSON-configurable prompts</p>
+  <div class="split">
+    <div style="flex:1">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="glass agent tutor"><div class="agent-glow"></div><span class="agent-badge">TutorAgent</span><h3>🧠 AI Tutor</h3><p>Context-aware explanations with Socratic questioning</p><ul class="agent-feat"><li><span class="af-dot"></span>Streaming responses (SSE)</li><li><span class="af-dot"></span>Markdown + KaTeX rendering</li><li><span class="af-dot"></span>Content-grounded explanations</li></ul></div>
+        <div class="glass agent quiz"><div class="agent-glow"></div><span class="agent-badge">QuizAgent</span><h3>📝 Quiz Generator</h3><p>Challenging assessments with concept tagging</p><ul class="agent-feat"><li><span class="af-dot"></span>Structured JSON output</li><li><span class="af-dot"></span>Difficulty levels (easy–hard)</li><li><span class="af-dot"></span>Learning explanations</li></ul></div>
+        <div class="glass agent content"><div class="agent-glow"></div><span class="agent-badge">ContentAgent</span><h3>📄 Content Analyzer</h3><p>Extracts information from PDFs, images, videos</p><ul class="agent-feat"><li><span class="af-dot"></span>PDF extraction (PyPDF2)</li><li><span class="af-dot"></span>Vision model analysis</li><li><span class="af-dot"></span>Key point extraction</li></ul></div>
+      </div>
+    </div>
+    <div style="flex:0.9;display:flex;justify-content:center">
+      <div class="img-float" style="max-width:400px;animation-delay:-3s">
+        <img src="assets/presentation/agents.jpg" alt="AI Agents">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 11: FEATURES ═══════════ -->
+<div class="slide">
+  <div class="section-tag"><span class="dot"></span>Features</div>
+  <div class="heading">Core <span class="grad">Features</span></div>
+  <p class="subtitle">12 integrated features powering a comprehensive learning platform</p>
+  <div class="grid-4">
+    <div class="glass" style="text-align:center;padding:20px 14px"><span style="font-size:28px;display:block;margin-bottom:10px">💬</span><div style="font-size:13px;font-weight:600;margin-bottom:4px">AI Chat Tutor</div><div style="font-size:11px;color:var(--text-3)">Streaming context-aware explanations</div></div>
+    <div class="glass" style="text-align:center;padding:20px 14px"><span style="font-size:28px;display:block;margin-bottom:10px">📄</span><div style="font-size:13px;font-weight:600;margin-bottom:4px">Content Upload</div><div style="font-size:11px;color:var(--text-3)">PDF, image & video processing</div></div>
+    <div class="glass" style="text-align:center;padding:20px 14px"><span style="font-size:28px;display:block;margin-bottom:10px">📝</span><div style="font-size:13px;font-weight:600;margin-bottom:4px">Quiz Generation</div><div style="font-size:11px;color:var(--text-3)">AI MCQs with explanations</div></div>
+    <div class="glass" style="text-align:center;padding:20px 14px"><span style="font-size:28px;display:block;margin-bottom:10px">📊</span><div style="font-size:13px;font-weight:600;margin-bottom:4px">Progress Tracking</div><div style="font-size:11px;color:var(--text-3)">Visual dashboards & trends</div></div>
+    <div class="glass" style="text-align:center;padding:20px 14px"><span style="font-size:28px;display:block;margin-bottom:10px">👥</span><div style="font-size:13px;font-weight:600;margin-bottom:4px">Friends System</div><div style="font-size:11px;color:var(--text-3)">Search, requests & presence</div></div>
+    <div class="glass" style="text-align:center;padding:20px 14px"><span style="font-size:28px;display:block;margin-bottom:10px">✉️</span><div style="font-size:13px;font-weight:600;margin-bottom:4px">Direct Messaging</div><div style="font-size:11px;color:var(--text-3)">Real-time Pusher chat</div></div>
+    <div class="glass" style="text-align:center;padding:20px 14px"><span style="font-size:28px;display:block;margin-bottom:10px">👨‍👩‍👧‍👦</span><div style="font-size:13px;font-weight:600;margin-bottom:4px">Study Groups</div><div style="font-size:11px;color:var(--text-3)">Collaborative group chat</div></div>
+    <div class="glass" style="text-align:center;padding:20px 14px"><span style="font-size:28px;display:block;margin-bottom:10px">📞</span><div style="font-size:13px;font-weight:600;margin-bottom:4px">Voice/Video Calls</div><div style="font-size:11px;color:var(--text-3)">WebRTC peer-to-peer</div></div>
+    <div class="glass" style="text-align:center;padding:20px 14px"><span style="font-size:28px;display:block;margin-bottom:10px">🔐</span><div style="font-size:13px;font-weight:600;margin-bottom:4px">Authentication</div><div style="font-size:11px;color:var(--text-3)">Register, login, anonymous</div></div>
+    <div class="glass" style="text-align:center;padding:20px 14px"><span style="font-size:28px;display:block;margin-bottom:10px">🌙</span><div style="font-size:13px;font-weight:600;margin-bottom:4px">Dark/Light Theme</div><div style="font-size:11px;color:var(--text-3)">System detection + toggle</div></div>
+    <div class="glass" style="text-align:center;padding:20px 14px"><span style="font-size:28px;display:block;margin-bottom:10px">📜</span><div style="font-size:13px;font-weight:600;margin-bottom:4px">Chat History</div><div style="font-size:11px;color:var(--text-3)">Persistent conversations</div></div>
+    <div class="glass" style="text-align:center;padding:20px 14px"><span style="font-size:28px;display:block;margin-bottom:10px">🎞️</span><div style="font-size:13px;font-weight:600;margin-bottom:4px">Video Processing</div><div style="font-size:11px;color:var(--text-3)">Frame extraction + vision</div></div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 12: SOCIAL FEATURES ═══════════ -->
+<div class="slide">
+  <div class="section-tag"><span class="dot"></span>Features</div>
+  <div class="heading">Social <span class="grad">Learning</span></div>
+  <p class="subtitle">Collaborative features that connect learners in real time</p>
+  <div class="split">
+    <div class="split-visual">
+      <div class="img-float" style="max-width:420px;animation-delay:-1s">
+        <img src="assets/presentation/social.jpg" alt="Social Learning">
+      </div>
+    </div>
+    <div class="split-content">
+      <div class="glass" style="margin-bottom:12px;padding:22px">
+        <div style="font-size:15px;font-weight:600;margin-bottom:8px">👥 Friends & Presence</div>
+        <div style="font-size:13px;color:var(--text-3);line-height:1.7">Search users, send friend requests, track online/offline status with real-time Pusher notifications</div>
+      </div>
+      <div class="glass" style="margin-bottom:12px;padding:22px">
+        <div style="font-size:15px;font-weight:600;margin-bottom:8px">✉️ Direct & Group Chat</div>
+        <div style="font-size:13px;color:var(--text-3);line-height:1.7">Instant 1-on-1 messaging and group study rooms with persistent history and typing indicators</div>
+      </div>
+      <div class="glass" style="margin-bottom:12px;padding:22px">
+        <div style="font-size:15px;font-weight:600;margin-bottom:8px">📞 Voice & Video Calling</div>
+        <div style="font-size:13px;color:var(--text-3);line-height:1.7">WebRTC peer-to-peer calls with floating call bubble, mute controls, and multi-participant support</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 13: DATABASE & STATS ═══════════ -->
+<div class="slide">
+  <div class="section-tag"><span class="dot"></span>Architecture</div>
+  <div class="heading">By the <span class="grad">Numbers</span></div>
+  <p class="subtitle">The scale and scope of the Knowrizon platform</p>
+  <div class="grid-4" style="margin-bottom:28px">
+    <div class="glass stat-card"><div class="stat-num c1">18</div><div class="stat-label">Database Models</div></div>
+    <div class="glass stat-card"><div class="stat-num c2">12</div><div class="stat-label">API Route Modules</div></div>
+    <div class="glass stat-card"><div class="stat-num c3">16</div><div class="stat-label">Backend Services</div></div>
+    <div class="glass stat-card"><div class="stat-num c4">3</div><div class="stat-label">AI Agents</div></div>
+  </div>
+  <div class="img-showcase" style="max-width:650px">
+    <div class="img-glow"></div>
+    <img src="assets/presentation/dashboard.jpg" alt="Dashboard Analytics">
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 14: TESTING ═══════════ -->
+<div class="slide">
+  <div class="morph-blob" style="background:var(--emerald);bottom:15%;right:10%;width:250px;height:250px;"></div>
+  <div class="section-tag"><span class="dot"></span>Quality Assurance</div>
+  <div class="heading">Testing & <span class="grad">Retrospective</span></div>
+  <p class="subtitle">Continuous evaluation with key findings from each sprint</p>
+  <div class="grid-2">
+    <div class="glass" style="padding:28px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:14px">🧪 Testing Activities</div>
+      <div style="font-size:14px;color:var(--text-2);line-height:1.8">
+        <strong style="color:var(--text)">Functionality</strong> — End-to-end workflows, API validation<br><br>
+        <strong style="color:var(--text)">Usability</strong> — UI navigation, responsive design, themes<br><br>
+        <strong style="color:var(--text)">Performance</strong> — AI response times, page load optimization<br><br>
+        <strong style="color:var(--text)">Property-Based</strong> — Hypothesis framework for edge cases
+      </div>
+    </div>
+    <div class="glass" style="padding:28px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:14px">🔍 Key Findings</div>
+      <div style="font-size:13px;color:var(--text-2);line-height:2">
+        <span style="color:var(--indigo-light)">Sprint 1:</span> CORS config required careful setup<br>
+        <span style="color:var(--cyan)">Sprint 2:</span> Large PDFs → chunking strategy developed<br>
+        <span style="color:var(--cyan)">Sprint 2:</span> Malformed JSON → robust parsing fallback<br>
+        <span style="color:var(--amber)">Sprint 3:</span> Streaming latency → prompt optimization<br>
+        <span style="color:var(--emerald)">Sprint 4:</span> In-memory → SQLite → PostgreSQL migration
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 15: DEPLOYMENT ═══════════ -->
+<div class="slide">
+  <div class="section-tag"><span class="dot"></span>Deployment</div>
+  <div class="heading">Production <span class="grad">Deployment</span></div>
+  <p class="subtitle">Serverless architecture on Vercel with Supabase PostgreSQL</p>
+  <div class="grid-2">
+    <div class="glass" style="padding:26px"><span style="font-size:28px;display:block;margin-bottom:12px">🌐</span><div style="font-size:15px;font-weight:600;margin-bottom:8px">Frontend Delivery</div><div style="font-size:13px;color:var(--text-3);line-height:1.7">React built with Vite into optimized static assets, served from <strong style="color:var(--text)">Vercel's global CDN</strong> with code splitting.</div></div>
+    <div class="glass" style="padding:26px"><span style="font-size:28px;display:block;margin-bottom:12px">⚡</span><div style="font-size:15px;font-weight:600;margin-bottom:8px">Serverless Backend</div><div style="font-size:13px;color:var(--text-3);line-height:1.7">Flask deployed as <strong style="color:var(--text)">Vercel serverless Python function</strong> with 60s max duration for AI endpoints.</div></div>
+    <div class="glass" style="padding:26px"><span style="font-size:28px;display:block;margin-bottom:12px">🗄️</span><div style="font-size:15px;font-weight:600;margin-bottom:8px">Database Infrastructure</div><div style="font-size:13px;color:var(--text-3);line-height:1.7">Production data on <strong style="color:var(--text)">PostgreSQL via Supabase</strong> with NullPool for serverless environments.</div></div>
+    <div class="glass" style="padding:26px"><span style="font-size:28px;display:block;margin-bottom:12px">🔒</span><div style="font-size:15px;font-weight:600;margin-bottom:8px">Security</div><div style="font-size:13px;color:var(--text-3);line-height:1.7">Credentials managed through <strong style="color:var(--text)">Vercel encrypted environment variables</strong> — API keys, DB URLs, secrets.</div></div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 16: LESSONS LEARNED ═══════════ -->
+<div class="slide">
+  <div class="section-tag"><span class="dot"></span>Insights</div>
+  <div class="heading">Lessons <span class="grad">Learned</span></div>
+  <p class="subtitle">Key insights from the iterative development process</p>
+  <div class="grid-3">
+    <div class="glass" style="padding:24px;text-align:center"><span style="font-size:32px;display:block;margin-bottom:12px">📐</span><div style="font-size:14px;font-weight:600;margin-bottom:6px">Spec-Driven Development</div><div style="font-size:12px;color:var(--text-3);line-height:1.6">Clear requirements prevented scope creep throughout all sprints</div></div>
+    <div class="glass" style="padding:24px;text-align:center"><span style="font-size:32px;display:block;margin-bottom:12px">🔧</span><div style="font-size:14px;font-weight:600;margin-bottom:6px">Modular Prompts</div><div style="font-size:12px;color:var(--text-3);line-height:1.6">JSON configs enabled rapid AI behavior iteration without code changes</div></div>
+    <div class="glass" style="padding:24px;text-align:center"><span style="font-size:32px;display:block;margin-bottom:12px">⚡</span><div style="font-size:14px;font-weight:600;margin-bottom:6px">SSE Streaming</div><div style="font-size:12px;color:var(--text-3);line-height:1.6">Dramatically improved perceived AI performance and user wait times</div></div>
+    <div class="glass" style="padding:24px;text-align:center"><span style="font-size:32px;display:block;margin-bottom:12px">🧪</span><div style="font-size:14px;font-weight:600;margin-bottom:6px">Property-Based Testing</div><div style="font-size:12px;color:var(--text-3);line-height:1.6">Hypothesis caught edge cases traditional unit tests missed</div></div>
+    <div class="glass" style="padding:24px;text-align:center"><span style="font-size:32px;display:block;margin-bottom:12px">📈</span><div style="font-size:14px;font-weight:600;margin-bottom:6px">Progressive Infrastructure</div><div style="font-size:12px;color:var(--text-3);line-height:1.6">In-memory → SQLite → PostgreSQL was the right migration path</div></div>
+    <div class="glass" style="padding:24px;text-align:center"><span style="font-size:32px;display:block;margin-bottom:12px">🤖</span><div style="font-size:14px;font-weight:600;margin-bottom:6px">Graceful Degradation</div><div style="font-size:12px;color:var(--text-3);line-height:1.6">Fallback modes kept the system functional when APIs were unavailable</div></div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 17: CONCLUSION ═══════════ -->
+<div class="slide">
+  <div class="morph-blob" style="background:var(--indigo);top:5%;left:10%;width:300px;height:300px;"></div>
+  <div class="morph-blob" style="background:var(--cyan);bottom:10%;right:5%;width:250px;height:250px;animation-delay:-4s;"></div>
+  <div class="section-tag"><span class="dot"></span>Summary</div>
+  <div class="heading">Conclusion & <span class="grad">Recommendations</span></div>
+  <p class="subtitle" style="margin-bottom:28px">Knowrizon demonstrates the viability of AI-powered adaptive tutoring</p>
+  <div class="grid-2">
+    <div class="glass" style="padding:28px">
+      <div style="font-size:17px;font-weight:700;margin-bottom:16px">✅ Conclusions</div>
+      <div style="font-size:14px;color:var(--text-2);line-height:1.8">
+        • <strong style="color:var(--text)">Personalized tutoring</strong> through TutorAgent with Nebius AI<br><br>
+        • <strong style="color:var(--text)">Automated content processing</strong> from PDFs, images, and videos<br><br>
+        • <strong style="color:var(--text)">Intelligent assessments</strong> with mastery-based explanatory feedback<br><br>
+        • <strong style="color:var(--text)">Collaborative learning</strong> through real-time social features
+      </div>
+    </div>
+    <div class="glass" style="padding:28px">
+      <div style="font-size:17px;font-weight:700;margin-bottom:16px">💡 Recommendations</div>
+      <div style="font-size:14px;color:var(--text-2);line-height:1.8">
+        • Conduct <strong style="color:var(--text)">larger-scale usability studies</strong> with diverse populations<br><br>
+        • Implement <strong style="color:var(--text)">advanced learning analytics</strong> using learning science models<br><br>
+        • Explore <strong style="color:var(--text)">multi-language support</strong> for broader accessibility<br><br>
+        • Investigate <strong style="color:var(--text)">fine-tuned AI models</strong> for domain-specific tutoring
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 18: THANK YOU ═══════════ -->
+<div class="slide">
+  <div class="morph-blob" style="background:var(--indigo);top:-50px;right:-50px;width:400px;height:400px;"></div>
+  <div class="morph-blob" style="background:var(--cyan);bottom:-50px;left:-50px;width:350px;height:350px;animation-delay:-4s;"></div>
+  <div class="morph-blob" style="background:var(--violet);top:50%;left:50%;transform:translate(-50%,-50%);width:300px;height:300px;animation-delay:-2s;"></div>
+  <div style="font-size:80px;margin-bottom:16px;animation:floatY 4s ease-in-out infinite">🎓</div>
+  <div class="big-title" style="margin-bottom:12px">Thank <span class="grad">You</span></div>
+  <p style="font-size:20px;color:var(--text-2);margin-bottom:40px;font-weight:400">We are now open for questions and feedback</p>
+  <div class="grid-4" style="max-width:700px;margin-bottom:36px">
+    <div class="glass stat-card" style="padding:20px"><div class="stat-num c1" style="font-size:40px">12</div><div class="stat-label">Features</div></div>
+    <div class="glass stat-card" style="padding:20px"><div class="stat-num c2" style="font-size:40px">3</div><div class="stat-label">AI Agents</div></div>
+    <div class="glass stat-card" style="padding:20px"><div class="stat-num c3" style="font-size:40px">18</div><div class="stat-label">DB Models</div></div>
+    <div class="glass stat-card" style="padding:20px"><div class="stat-num c4" style="font-size:40px">4</div><div class="stat-label">Sprints</div></div>
+  </div>
+  <p style="font-size:18px;color:var(--text-3);font-weight:500">Knowrizon AI — <span style="background:linear-gradient(135deg,var(--indigo-light),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent">Learn Smarter</span></p>
+</div>
+
+</div><!-- /presentation -->
+
+<!-- Controls -->
+<div class="slide-num"><span id="cur">01</span> / <span id="tot">18</span></div>
+<div class="nav-controls">
+  <button class="nav-btn" onclick="prev()" aria-label="Previous">←</button>
+  <button class="nav-btn" onclick="next()" aria-label="Next">→</button>
+</div>
+<div class="key-bar"><span><kbd>←</kbd> Prev</span><span><kbd>→</kbd> Next</span><span><kbd>F</kbd> Fullscreen</span></div>
+
+<script>
+// ═══ PARTICLE SYSTEM ═══
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resizeCanvas); resizeCanvas();
+
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * canvas.width;
+    this.y = Math.random() * canvas.height;
+    this.size = Math.random() * 2 + 0.5;
+    this.speedX = (Math.random() - 0.5) * 0.3;
+    this.speedY = (Math.random() - 0.5) * 0.3;
+    this.opacity = Math.random() * 0.4 + 0.1;
+    this.hue = Math.random() > 0.5 ? 230 : 180;
+  }
+  update() {
+    this.x += this.speedX; this.y += this.speedY;
+    if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
+  }
+  draw() {
+    ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${this.hue}, 80%, 70%, ${this.opacity})`;
+    ctx.fill();
+  }
+}
+
+for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+function animateParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  // Draw connections
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 120) {
+        ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = `rgba(99, 102, 241, ${0.06 * (1 - dist / 120)})`;
+        ctx.lineWidth = 0.5; ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// ═══ SLIDE ENGINE ═══
+let current = 0;
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+
+function showSlide(i) {
+  slides.forEach(s => { s.classList.remove('active'); });
+  slides[i].classList.add('active');
+  current = i;
+  document.getElementById('cur').textContent = String(i + 1).padStart(2, '0');
+  document.getElementById('tot').textContent = String(total).padStart(2, '0');
+  document.getElementById('progressFill').style.width = ((i + 1) / total * 100) + '%';
+}
+
+function next() { if (current < total - 1) showSlide(current + 1); }
+function prev() { if (current > 0) showSlide(current - 1); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+  if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+  if (e.key === 'End') { e.preventDefault(); showSlide(total - 1); }
+  if (e.key === 'f' || e.key === 'F') { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+});
+
+let touchX = 0;
+document.addEventListener('touchstart', e => { touchX = e.changedTouches[0].screenX; });
+document.addEventListener('touchend', e => { const d = e.changedTouches[0].screenX - touchX; if (d < -50) next(); if (d > 50) prev(); });
+
+showSlide(0);
+</script>
+</body>
+</html>

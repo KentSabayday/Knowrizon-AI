@@ -6,9 +6,20 @@
   "example_format": {
     "title": "Content title",
     "summary": "Comprehensive summary",
-    "key_points": ["Point 1", "Point 2"],
-    "concepts": [{"term": "Term", "definition": "Definition"}],
-    "topics": ["Topic 1", "Topic 2"]
+    "key_points": [
+      "Point 1",
+      "Point 2"
+    ],
+    "concepts": [
+      {
+        "term": "Term",
+        "definition": "Definition"
+      }
+    ],
+    "topics": [
+      "Topic 1",
+      "Topic 2"
+    ]
   },
   "context_guidance": [
     "Focus on educational value of the content",

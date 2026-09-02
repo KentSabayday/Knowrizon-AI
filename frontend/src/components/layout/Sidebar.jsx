@@ -137,13 +137,12 @@ export function Sidebar({ currentPath = '/dashboard', onNavigate }) {
                         onClick={() => handleNavClick(item)}
                         disabled={isDisabled}
                         title={isCollapsed ? item.label : undefined}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
-                          isActive
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${isActive
                             ? 'dash-nav-active text-[#22C7FF] font-medium'
                             : isDisabled
                               ? 'text-[#334155] cursor-not-allowed'
                               : 'dash-nav-item text-[#94A3B8] hover:text-white'
-                        }`}
+                          }`}
                       >
                         <Icon className="w-[18px] h-[18px] flex-shrink-0" />
                         <AnimatePresence>

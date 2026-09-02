@@ -90,19 +90,16 @@ export function TopBar({ title, currentPath = '/dashboard' }) {
         </button>
 
         {/* Profile pill */}
-        <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl ${
-          isAnonymous
+        <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl ${isAnonymous
             ? 'bg-amber-500/[0.06] border border-amber-500/[0.08]'
             : 'bg-white/[0.04] border border-white/[0.06]'
-        }`}>
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0 ${
-            isAnonymous ? 'bg-amber-500/40' : 'bg-gradient-to-br from-[#22C7FF] to-[#5B5FFF]'
           }`}>
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0 ${isAnonymous ? 'bg-amber-500/40' : 'bg-gradient-to-br from-[#22C7FF] to-[#5B5FFF]'
+            }`}>
             {initials}
           </div>
-          <span className={`text-xs font-medium hidden lg:block ${
-            isAnonymous ? 'text-amber-300' : 'text-[#E2E8F0]'
-          }`}>
+          <span className={`text-xs font-medium hidden lg:block ${isAnonymous ? 'text-amber-300' : 'text-[#E2E8F0]'
+            }`}>
             {displayName}
           </span>
         </div>

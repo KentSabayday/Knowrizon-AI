@@ -130,8 +130,8 @@ export function LessonsView({ conversationId: initialConversationId = null, onCo
 
   const filteredContent = searchQuery
     ? uploadedContent.filter(c =>
-        (c.title || c.filename || '').toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      (c.title || c.filename || '').toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : uploadedContent;
 
   const tabs = [
@@ -148,9 +148,8 @@ export function LessonsView({ conversationId: initialConversationId = null, onCo
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                activeTab === tab.id ? 'text-white' : 'text-[#64748B] hover:text-[#94A3B8]'
-              }`}
+              className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === tab.id ? 'text-white' : 'text-[#64748B] hover:text-[#94A3B8]'
+                }`}
             >
               {activeTab === tab.id && (
                 <motion.div
@@ -263,9 +262,8 @@ export function LessonsView({ conversationId: initialConversationId = null, onCo
                       >
                         <div className="flex items-start gap-3">
                           {/* File icon */}
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                            isVideo ? 'bg-[#5B5FFF]/10' : 'bg-[#22C7FF]/10'
-                          }`}>
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isVideo ? 'bg-[#5B5FFF]/10' : 'bg-[#22C7FF]/10'
+                            }`}>
                             {isVideo ? (
                               <Video className="w-5 h-5 text-[#5B5FFF]" />
                             ) : (
