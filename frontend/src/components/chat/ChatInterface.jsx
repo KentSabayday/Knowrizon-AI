@@ -138,7 +138,7 @@ const TutorMarkdown = memo(function TutorMarkdown({ content, isStreaming = false
 
       {/* Streaming cursor */}
       {isStreaming && content && (
-        <span className="inline-block w-[2px] h-[1.1em] bg-[#22C7FF] ml-0.5 align-middle dash-cursor" aria-hidden="true" />
+        <span className="inline-block w-[2px] h-[1.1em] bg-blue-600 dark:bg-blue-400 ml-0.5 align-middle dash-cursor" aria-hidden="true" />
       )}
     </div>
   );
@@ -152,7 +152,7 @@ const markdownComponents = {
   h1: ({ children }) => {
     const id = `heading-${headingCounter++}-${String(children).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}`;
     return (
-      <h2 id={id} className="text-[22px] font-bold text-white mt-8 mb-3 pb-2 border-b border-white/[0.08] scroll-mt-4">
+      <h2 id={id} className="text-[20px] font-bold text-slate-900 dark:text-white mt-7 mb-3 pb-2 border-b border-slate-200 dark:border-white/[0.08] scroll-mt-4">
         {children}
       </h2>
     );
@@ -160,59 +160,59 @@ const markdownComponents = {
   h2: ({ children }) => {
     const id = `heading-${headingCounter++}-${String(children).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}`;
     return (
-      <h3 id={id} className="text-[19px] font-bold text-white mt-6 mb-2.5 scroll-mt-4 flex items-center gap-2">
-        <span className="w-1 h-5 bg-[#22C7FF] rounded-full" aria-hidden="true" />
+      <h3 id={id} className="text-[17px] font-bold text-slate-900 dark:text-white mt-5 mb-2.5 scroll-mt-4 flex items-center gap-2">
+        <span className="w-1 h-4 bg-blue-600 rounded-full" aria-hidden="true" />
         {children}
       </h3>
     );
   },
   h3: ({ children }) => (
-    <h4 className="text-[16px] font-semibold text-[#E2E8F0] mt-5 mb-2">{children}</h4>
+    <h4 className="text-[15px] font-semibold text-slate-800 dark:text-[#E2E8F0] mt-4 mb-2">{children}</h4>
   ),
   h4: ({ children }) => (
-    <h5 className="text-[15px] font-semibold text-[#22C7FF] mt-4 mb-1.5">{children}</h5>
+    <h5 className="text-[14px] font-semibold text-blue-600 dark:text-blue-400 mt-3 mb-1.5">{children}</h5>
   ),
   p: ({ children }) => (
-    <p className="mb-3 text-[#E2E8F0] leading-[1.75] text-[15px]">{children}</p>
+    <p className="mb-3 text-slate-700 dark:text-[#CBD5E1] leading-[1.75] text-[15px]">{children}</p>
   ),
   strong: ({ children }) => (
-    <strong className="font-semibold text-white">{children}</strong>
+    <strong className="font-semibold text-slate-900 dark:text-white">{children}</strong>
   ),
   em: ({ children }) => (
-    <em className="italic text-[#CBD5E1]">{children}</em>
+    <em className="italic text-slate-600 dark:text-[#CBD5E1]">{children}</em>
   ),
   ul: ({ children }) => (
-    <ul className="list-disc list-outside pl-5 mb-3 space-y-1.5 text-[#E2E8F0] text-[15px]">{children}</ul>
+    <ul className="list-disc list-outside pl-5 mb-3 space-y-1.5 text-slate-700 dark:text-[#CBD5E1] text-[15px]">{children}</ul>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal list-outside pl-5 mb-3 space-y-1.5 text-[#E2E8F0] text-[15px]">{children}</ol>
+    <ol className="list-decimal list-outside pl-5 mb-3 space-y-1.5 text-slate-700 dark:text-[#CBD5E1] text-[15px]">{children}</ol>
   ),
   li: ({ children }) => (
-    <li className="text-[#E2E8F0] leading-[1.65] pl-1">{children}</li>
+    <li className="text-slate-700 dark:text-[#CBD5E1] leading-[1.65] pl-1">{children}</li>
   ),
   a: ({ href, children }) => (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="text-[#22C7FF] hover:underline focus:outline-none focus:ring-1 focus:ring-[#22C7FF]/40 rounded">{children}</a>
+    <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline focus:outline-none focus:ring-1 focus:ring-blue-500/40 rounded">{children}</a>
   ),
   blockquote: ({ children }) => (
-    <blockquote className="my-4 pl-4 py-3 pr-4 border-l-[3px] border-[#22C7FF] bg-[#22C7FF]/[0.04] rounded-r-xl text-[#CBD5E1] text-[15px] leading-[1.7]">
+    <blockquote className="my-4 pl-4 py-3 pr-4 border-l-[3px] border-blue-600 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 rounded-r-xl text-slate-700 dark:text-[#CBD5E1] text-[15px] leading-[1.7]">
       {children}
     </blockquote>
   ),
-  hr: () => <hr className="my-6 border-white/[0.08]" />,
+  hr: () => <hr className="my-6 border-slate-200 dark:border-white/[0.08]" />,
   code: ({ inline, className, children }) => {
     if (inline) {
-      return <code className="bg-white/[0.07] text-[#22C7FF] px-1.5 py-0.5 rounded text-[13px] font-mono">{children}</code>;
+      return <code className="bg-slate-100 dark:bg-white/[0.08] text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded text-[13px] font-mono">{children}</code>;
     }
     const lang = className?.replace('language-', '') || '';
     return (
-      <div className="my-4 rounded-xl border border-white/[0.08] overflow-hidden">
+      <div className="my-4 rounded-xl border border-slate-200 dark:border-white/[0.08] overflow-hidden">
         {lang && (
-          <div className="px-4 py-1.5 bg-white/[0.03] border-b border-white/[0.06] text-[10px] text-[#64748B] uppercase tracking-wider font-semibold">
+          <div className="px-4 py-1.5 bg-slate-100 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/[0.06] text-[10px] text-slate-500 dark:text-[#64748B] uppercase tracking-wider font-semibold">
             {lang}
           </div>
         )}
-        <pre className="bg-[#0B1220] p-4 overflow-x-auto">
-          <code className="text-[13px] font-mono text-[#E2E8F0] leading-relaxed">{children}</code>
+        <pre className="bg-slate-900 dark:bg-[#0B1220] p-4 overflow-x-auto">
+          <code className="text-[13px] font-mono text-slate-100 dark:text-[#E2E8F0] leading-relaxed">{children}</code>
         </pre>
       </div>
     );
@@ -221,22 +221,22 @@ const markdownComponents = {
 
   /* ─── GFM Table ─── */
   table: ({ children }) => (
-    <div className="my-5 overflow-x-auto rounded-xl border border-white/[0.08]">
+    <div className="my-5 overflow-x-auto rounded-xl border border-slate-200 dark:border-white/[0.08]">
       <table className="min-w-full border-collapse">{children}</table>
     </div>
   ),
   thead: ({ children }) => (
-    <thead className="bg-[#22C7FF]/[0.06]">{children}</thead>
+    <thead className="bg-slate-100/80 dark:bg-white/[0.04]">{children}</thead>
   ),
   tbody: ({ children }) => <tbody>{children}</tbody>,
   tr: ({ children }) => (
-    <tr className="border-b border-white/[0.06] hover:bg-white/[0.02] transition-colors">{children}</tr>
+    <tr className="border-b border-slate-200 dark:border-white/[0.06] hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">{children}</tr>
   ),
   th: ({ children }) => (
-    <th className="px-4 py-3 text-left text-[13px] font-semibold text-[#F8FAFC] whitespace-nowrap">{children}</th>
+    <th className="px-4 py-3 text-left text-[13px] font-semibold text-slate-900 dark:text-[#F8FAFC] whitespace-nowrap">{children}</th>
   ),
   td: ({ children }) => (
-    <td className="px-4 py-3 text-[14px] text-[#CBD5E1] leading-[1.55] align-top">{children}</td>
+    <td className="px-4 py-3 text-[14px] text-slate-700 dark:text-[#CBD5E1] leading-[1.55] align-top">{children}</td>
   ),
 };
 
@@ -245,10 +245,10 @@ const markdownComponents = {
 function ResponseOutline({ headings }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mb-5 rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+    <div className="mb-5 rounded-xl border border-slate-200 dark:border-white/[0.06] bg-slate-50/70 dark:bg-white/[0.02] overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-[#94A3B8] font-medium hover:text-white transition-colors"
+        className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-slate-600 dark:text-[#94A3B8] font-medium hover:text-slate-900 dark:hover:text-white transition-colors"
       >
         <span>In this response ({headings.length} sections)</span>
         {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -259,7 +259,7 @@ function ResponseOutline({ headings }) {
             <a
               key={h.id}
               href={`#${h.id}`}
-              className="block text-xs text-[#64748B] hover:text-[#22C7FF] transition-colors"
+              className="block text-xs text-slate-500 dark:text-[#64748B] hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               style={{ paddingLeft: `${(h.level - 1) * 12}px` }}
             >
               {h.text}
@@ -297,7 +297,8 @@ function KnowriAvatar({ size = 38, state = 'idle', className = '' }) {
    MAIN CHAT INTERFACE
    ═══════════════════════════════════════════════════════════ */
 
-export function ChatInterface({
+
+  export function ChatInterface({
   contentContext = [],
   enableStreaming = true,
   conversationId: initialConversationId = null,
@@ -316,6 +317,23 @@ export function ChatInterface({
   const abortControllerRef = useRef(null);
 
   const scrollContainerRef = useRef(null);
+
+  // Listen for Ask AI events from post-quiz Concepts to Review
+  useEffect(() => {
+    const handleAskConceptEvent = (e) => {
+      const concept = e.detail?.concept;
+      if (concept) {
+        const prompt = `I struggled with the concept of "${concept}" in my recent quiz. Could you explain this concept clearly with an intuitive real-world example?`;
+        setInputValue(prompt);
+        setTimeout(() => {
+          inputRef.current?.focus();
+          inputRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 50);
+      }
+    };
+    window.addEventListener('knowri-ask-concept', handleAskConceptEvent);
+    return () => window.removeEventListener('knowri-ask-concept', handleAskConceptEvent);
+  }, []);
 
   // Auto-scroll only when the user is near the bottom (within 150px)
   useEffect(() => {
@@ -476,7 +494,15 @@ export function ChatInterface({
 
               if (parsed.error) throw new Error(parsed.error);
 
-              if (parsed.messageId) {
+              const textChunk = parsed.chunk ?? parsed.text ?? parsed.content ?? parsed.response;
+              if (textChunk !== undefined && textChunk !== null) {
+                fullContent += textChunk;
+                setMessages((prev) =>
+                  prev.map((m) => m.id === assistantMessageId ? { ...m, content: fullContent } : m)
+                );
+              }
+
+              if (parsed.done) {
                 if (parsed.conversationId && !conversationId) {
                   setConversationId(parsed.conversationId);
                   if (onConversationChange) onConversationChange(parsed.conversationId);
@@ -603,7 +629,7 @@ export function ChatInterface({
     <div className="flex flex-col h-full bg-transparent">
       {/* Messages Container */}
       <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-5">
-        <div className="space-y-5">
+        <div className="space-y-5 max-w-4xl mx-auto">
 
           {/* ── Welcome State ── */}
           {messages.length === 0 && !isLoading && (
@@ -612,7 +638,7 @@ export function ChatInterface({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="space-y-5 max-w-lg"
+                className="space-y-5 max-w-xl mx-auto"
               >
                 {/* Knowri mascot */}
                 <div className="mx-auto" style={{ width: 100 }}>
@@ -624,10 +650,10 @@ export function ChatInterface({
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-2">
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
                     Hello! I&apos;m Knowri 👋
                   </h3>
-                  <p className="text-sm text-[#94A3B8] leading-relaxed max-w-md mx-auto">
+                  <p className="text-sm text-slate-600 dark:text-[#94A3B8] leading-relaxed max-w-md mx-auto">
                     I&apos;m your AI study companion. Ask me a question or upload learning materials, and I&apos;ll help you understand them clearly.
                   </p>
                 </div>
@@ -635,7 +661,7 @@ export function ChatInterface({
                 {/* Capabilities */}
                 <div className="flex flex-wrap justify-center gap-2">
                   {['PDFs', 'Videos', 'Lecture Notes', 'Research Papers', 'Code', 'Assignments'].map((cap) => (
-                    <span key={cap} className="text-[11px] px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.06] text-[#94A3B8]">
+                    <span key={cap} className="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-600 dark:text-[#94A3B8]">
                       ✓ {cap}
                     </span>
                   ))}
@@ -647,10 +673,10 @@ export function ChatInterface({
                     <button
                       key={s.text}
                       onClick={() => { setInputValue(s.text); inputRef.current?.focus(); }}
-                      className="group flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-[#22C7FF]/20 hover:bg-[#22C7FF]/[0.04] transition-all text-left"
+                      className="group flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-[#161920] border border-slate-200/90 dark:border-white/[0.08] hover:border-blue-500 hover:bg-blue-50/50 dark:hover:border-blue-400 dark:hover:bg-blue-950/20 transition-all text-left shadow-2xs"
                     >
                       <span className="text-sm">{s.emoji}</span>
-                      <span className="text-[11px] text-[#94A3B8] group-hover:text-white transition-colors leading-tight">{s.text}</span>
+                      <span className="text-[11px] text-slate-600 dark:text-[#94A3B8] group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-tight">{s.text}</span>
                     </button>
                   ))}
                 </div>
@@ -686,13 +712,13 @@ export function ChatInterface({
 
       {/* Active Knowledge Context */}
       {uploadedContent.length > 0 && (
-        <div className="flex-shrink-0 px-5 pb-1">
+        <div className="flex-shrink-0 px-5 pb-1 max-w-4xl mx-auto w-full">
           <div className="flex items-center gap-2 text-[10px] text-[#475569]">
             <FileText className="w-3 h-3" />
             <span>Using:</span>
             {uploadedContent.slice(0, 3).map((c, i) => (
-              <span key={c.id || i} className="px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.04] text-[#94A3B8] truncate max-w-[120px]">
-                {c.title || c.filename}
+              <span key={c.id || i} className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.04] text-slate-700 dark:text-[#94A3B8] truncate max-w-[120px]">
+                {(c.title || c.filename || 'Material').toLowerCase().includes('unavailable') ? (c.filename && !c.filename.toLowerCase().includes('unavailable') ? c.filename.replace(/[_-]/g, ' ').replace(/\.[^/.]+$/, '') : 'Study Material') : (c.title || c.filename)}
               </span>
             ))}
             {uploadedContent.length > 3 && (
@@ -704,7 +730,7 @@ export function ChatInterface({
 
       {/* Glass Input Area */}
       <div className="flex-shrink-0 p-4 pt-2">
-        <form onSubmit={handleSubmit} className="relative">
+        <form onSubmit={handleSubmit} className="relative max-w-4xl mx-auto">
           <textarea
             ref={inputRef}
             value={inputValue}
@@ -713,7 +739,7 @@ export function ChatInterface({
             placeholder="Ask Knowri anything about your learning materials…"
             disabled={isLoading && !isStreaming}
             rows={1}
-            className="w-full bg-[#111827]/60 backdrop-blur-sm border border-white/[0.08] rounded-2xl pl-5 pr-14 py-4 text-[15px] text-white placeholder:text-[#475569] outline-none focus:border-[#22C7FF]/30 focus:ring-1 focus:ring-[#22C7FF]/15 transition-all disabled:opacity-50 resize-none overflow-hidden leading-relaxed"
+            className="w-full bg-white dark:bg-[#161920] border border-slate-200 dark:border-white/[0.08] rounded-2xl pl-5 pr-14 py-4 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-[#64748B] outline-none focus:border-blue-600 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-600/15 dark:focus:ring-blue-400/20 transition-all disabled:opacity-50 resize-none overflow-hidden leading-relaxed shadow-2xs"
             style={{ minHeight: '56px', maxHeight: '160px' }}
             onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'; }}
             aria-label="Message input"
@@ -721,7 +747,7 @@ export function ChatInterface({
           <button
             type="submit"
             disabled={(isLoading && !isStreaming) || !inputValue.trim()}
-            className="absolute right-3 bottom-3 w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-gradient-to-r from-[#22C7FF] to-[#5B5FFF] text-white hover:shadow-lg hover:shadow-[#22C7FF]/20"
+            className="absolute right-3 bottom-3 w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-2xs"
             aria-label="Send message"
           >
             {isLoading && !isStreaming ? (
@@ -764,12 +790,12 @@ function MessageBubble({ message, formatTime, userInitials, onRegenerate, isLast
         data-testid="message-user"
       >
         <div className="flex items-start gap-2.5 flex-row-reverse max-w-[68%] sm:max-w-[65%]">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#22C7FF] to-[#5B5FFF] flex items-center justify-center flex-shrink-0 mt-0.5">
+          <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs">
             <span className="text-[10px] font-bold text-white">{userInitials}</span>
           </div>
-          <div className="bg-gradient-to-r from-[#22C7FF] to-[#5B5FFF] text-white rounded-2xl rounded-tr-sm px-4 py-3">
+          <div className="bg-blue-600 text-white rounded-2xl rounded-tr-xs px-4 py-3 shadow-2xs">
             <div className="whitespace-pre-wrap text-[15px] leading-relaxed">{message.content}</div>
-            <div className="text-[10px] text-white/50 mt-1.5">{formatTime(message.timestamp)}</div>
+            <div className="text-[10px] text-white/70 mt-1.5">{formatTime(message.timestamp)}</div>
           </div>
         </div>
       </motion.div>
@@ -794,7 +820,7 @@ function MessageBubble({ message, formatTime, userInitials, onRegenerate, isLast
         <div className="flex-1 min-w-0 space-y-1">
           {/* Header */}
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold text-white">Knowri</span>
+            <span className="text-[13px] font-semibold text-slate-900 dark:text-white">Knowri</span>
             <span className="text-[10px] text-[#64748B]">AI Tutor</span>
             {!isStreamingMsg && (
               <span className="text-[10px] text-[#475569]">• {formatTime(message.timestamp)}</span>
@@ -802,12 +828,21 @@ function MessageBubble({ message, formatTime, userInitials, onRegenerate, isLast
           </div>
 
           {/* Response body */}
-          <div className="bg-[#111827]/50 backdrop-blur-sm border border-white/[0.05] rounded-2xl rounded-tl-sm px-5 py-4">
+          <div className="bg-white dark:bg-[#161920] border border-slate-200/90 dark:border-white/[0.08] rounded-2xl rounded-tl-xs px-5 py-4 shadow-2xs">
             {message.content ? (
               <TutorMarkdown content={message.content} isStreaming={isStreamingMsg} />
             ) : isStreamingMsg ? (
               <span className="text-[#64748B] italic text-sm">Preparing a clear explanation…</span>
-            ) : null}
+            ) : (
+              <div className="flex items-center justify-between text-sm text-[#94A3B8]">
+                <span>I am ready to help you learn! What topic or material should we explore?</span>
+                {isLastAssistant && (
+                  <button onClick={onRegenerate} className="text-blue-600 dark:text-blue-400 hover:underline ml-2 text-xs">
+                    Retry
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -838,7 +873,7 @@ function MessageBubble({ message, formatTime, userInitials, onRegenerate, isLast
 function ActionButton({ children, ...props }) {
   return (
     <button
-      className="p-1.5 rounded-lg text-[#475569] hover:text-white hover:bg-white/[0.05] transition-all focus:outline-none focus:ring-1 focus:ring-[#22C7FF]/30"
+      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-[#64748B] dark:hover:text-white dark:hover:bg-white/[0.06] transition-all focus:outline-none focus:ring-1 focus:ring-blue-500/30"
       {...props}
     >
       {children}
@@ -871,7 +906,7 @@ function StreamingIndicator() {
     <div className="flex justify-start" data-testid="loading-indicator" aria-live="polite">
       <div className="flex items-start gap-3">
         <KnowriAvatar size={40} state={MASCOT_STATES.THINKING} />
-        <div className="bg-[#111827]/50 backdrop-blur-sm border border-white/[0.05] rounded-2xl rounded-tl-sm px-5 py-3.5">
+        <div className="bg-white dark:bg-[#161920] border border-slate-200/90 dark:border-white/[0.08] rounded-2xl rounded-tl-xs px-5 py-3.5 shadow-2xs">
           <div className="flex items-center gap-2.5">
             <motion.span
               key={stage}
@@ -882,9 +917,9 @@ function StreamingIndicator() {
               {stages[stage]}
             </motion.span>
             <span className="flex gap-1" aria-hidden="true">
-              <span className="w-1.5 h-1.5 bg-[#22C7FF] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 bg-[#22C7FF] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 bg-[#22C7FF] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <span className="w-1.5 h-1.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
             </span>
           </div>
         </div>

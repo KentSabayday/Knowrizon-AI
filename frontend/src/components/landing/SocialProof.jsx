@@ -39,10 +39,10 @@ function MetricCard({ value, suffix, label }) {
 
   return (
     <div ref={ref} className="text-center px-4 py-4 md:px-6">
-      <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1 tabular-nums">
+      <div className="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-1 tabular-nums">
         {count.toLocaleString()}{suffix}
       </div>
-      <div className="text-xs md:text-sm text-[#64748B]">{label}</div>
+      <div className="text-xs md:text-sm text-slate-600 dark:text-[#64748B] font-medium">{label}</div>
     </div>
   );
 }
@@ -52,11 +52,11 @@ export function SocialProof() {
     <section className="py-12 lg:py-16 px-6">
       <ScrollReveal>
         <div className="max-w-4xl mx-auto">
-          <p className="text-center text-xs uppercase tracking-widest text-[#475569] mb-6 font-medium">
+          <p className="text-center text-xs uppercase tracking-widest text-slate-500 dark:text-[#475569] mb-6 font-semibold">
             Trusted by students worldwide
           </p>
-          <div className="kn-glass rounded-2xl py-6 px-2">
-            <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-white/[0.06]">
+          <div className="kn-glass rounded-2xl py-6 px-2 border border-slate-200/80 dark:border-white/[0.08] shadow-sm dark:shadow-none">
+            <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-200 dark:divide-white/[0.06]">
               {metrics.map((m) => (
                 <MetricCard key={m.label} {...m} />
               ))}

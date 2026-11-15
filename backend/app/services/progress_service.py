@@ -1,18 +1,20 @@
 """
 Progress service for tracking and calculating user learning progress.
-
-Uses SQLAlchemy for database persistence of quiz results and progress tracking.
+Implements Mastery Learning, Retrieval Practice Theory, mistake intelligence,
+and Socratic remediation recommendations.
 """
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
+import math
 
 from app.database import db
 from app.models.quiz_result import QuizResult
+from app.models.quiz_data import QuizData
 
 
 class ProgressService:
-    """Service for managing user progress tracking with database persistence."""
+    """Service for managing user learning progress, mistake tracking, and mastery analytics."""
     
     def record_quiz_result(
         self,
@@ -21,57 +23,31 @@ class ProgressService:
         topic: Optional[str],
         score: int,
         total_questions: int,
-        answers: Optional[Dict[str, Any]] = None
+        answers: Optional[Dict[str, Any]] = None,
+        concept_scores: Optional[Dict[str, Any]] = None,
+        time_taken: Optional[int] = None,
+        conversation_id: Optional[int] = None
     ) -> QuizResult:
-        """
-        Record a quiz result in the database.
-        
-        Args:
-            user_id: ID of the user who completed the quiz
-            quiz_id: ID of the quiz
-            topic: Topic of the quiz (optional)
-            score: Number of correct answers
-            total_questions: Total number of questions
-            answers: Dictionary of question IDs to user answers (optional)
-            
-        Returns:
-            The created QuizResult object
-        """
         result = QuizResult(
             user_id=user_id,
             quiz_id=quiz_id,
             topic=topic,
             score=score,
-            total_questions=total_questions
+            total_questions=total_questions,
+            time_taken=time_taken,
+            conversation_id=conversation_id
         )
-        
         if answers:
             result.answers = answers
-        
+        if concept_scores:
+            result.concept_scores = concept_scores
+            
         db.session.add(result)
         db.session.commit()
-        
         return result
     
     def get_progress(self, user_id: str) -> Dict[str, Any]:
-        """
-        Get aggregated progress for a user.
-        
-        Calculates progress metrics from stored quiz results including:
-        - Total quizzes taken
-        - Total questions answered
-        - Correct answers count
-        - Overall success rate
-        - Topic-wise progress
-        - Recent activity
-        
-        Args:
-            user_id: ID of the user
-            
-        Returns:
-            Dictionary containing progress metrics
-        """
-        results = QuizResult.query.filter_by(user_id=user_id).all()
+        results = QuizResult.query.filter_by(user_id=user_id, is_archived=False).all()
         
         if not results:
             return {
@@ -86,25 +62,25 @@ class ProgressService:
         total_questions = sum(r.total_questions for r in results)
         correct_answers = sum(r.score for r in results)
         
-        # Calculate topic-wise progress
-        topic_stats = defaultdict(lambda: {'correct': 0, 'total': 0, 'quizzes': 0})
+        topic_stats = defaultdict(lambda: {'correct': 0, 'total': 0, 'quizzes': 0, 'scores': []})
         for r in results:
-            if r.topic:
-                topic_stats[r.topic]['correct'] += r.score
-                topic_stats[r.topic]['total'] += r.total_questions
-                topic_stats[r.topic]['quizzes'] += 1
+            t = r.topic or 'General'
+            topic_stats[t]['correct'] += r.score
+            topic_stats[t]['total'] += r.total_questions
+            topic_stats[t]['quizzes'] += 1
+            topic_stats[t]['scores'].append(r.percentage)
         
         topic_progress = {}
         for topic, stats in topic_stats.items():
-            percentage = (stats['correct'] / stats['total'] * 100) if stats['total'] > 0 else 0.0
+            pct = (stats['correct'] / stats['total'] * 100) if stats['total'] > 0 else 0.0
             topic_progress[topic] = {
-                'percentage': round(percentage, 1),
+                'percentage': round(pct, 1),
                 'quizzes': stats['quizzes'],
                 'correct': stats['correct'],
-                'total': stats['total']
+                'total': stats['total'],
+                'trend': 'improving' if len(stats['scores']) > 1 and stats['scores'][-1] >= stats['scores'][0] else 'stable'
             }
         
-        # Get recent activity (last 10 results, sorted by date descending)
         recent = sorted(results, key=lambda r: r.created_at or datetime.min, reverse=True)[:10]
         recent_activity = [{
             'quizId': r.quiz_id,
@@ -115,7 +91,6 @@ class ProgressService:
             'date': r.created_at.isoformat() if r.created_at else None
         } for r in recent]
         
-        # Calculate overall success rate
         success_rate = round((correct_answers / total_questions * 100), 1) if total_questions > 0 else 0.0
         
         return {
@@ -126,98 +101,210 @@ class ProgressService:
             'topicProgress': topic_progress,
             'recentActivity': recent_activity
         }
-    
-    def get_quiz_results(self, user_id: str) -> List[QuizResult]:
-        """
-        Get all quiz results for a user.
         
-        Args:
-            user_id: ID of the user
-            
-        Returns:
-            List of QuizResult objects
-        """
-        return QuizResult.query.filter_by(user_id=user_id).order_by(
+    def get_quiz_results(self, user_id: str) -> List[QuizResult]:
+        """Get all quiz results for a user."""
+        return QuizResult.query.filter_by(user_id=user_id, is_archived=False).order_by(
             QuizResult.created_at.desc()
         ).all()
-    
-    def get_quiz_result(self, result_id: str, user_id: str) -> Optional[QuizResult]:
-        """
-        Get a specific quiz result if owned by user.
-        
-        Args:
-            result_id: ID of the quiz result
-            user_id: ID of the user
-            
-        Returns:
-            QuizResult if found and owned by user, None otherwise
-        """
-        return QuizResult.query.filter_by(id=result_id, user_id=user_id).first()
-    
-    def calculate_success_rate(self, correct: int, total: int) -> float:
-        """
-        Calculate success rate as a percentage.
-        
-        Args:
-            correct: Number of correct answers
-            total: Total number of questions
-            
-        Returns:
-            Success rate from 0.0 to 100.0, rounded to 1 decimal place
-        """
-        if total == 0:
-            return 0.0
-        return round((correct / total) * 100, 1)
-    
-    def categorize_topic_mastery(self, success_rate: float) -> str:
-        """
-        Categorize a topic based on success rate.
-        
-        Args:
-            success_rate: Success rate as a percentage (0-100)
-            
-        Returns:
-            Category string: "mastered", "needs_work", or "in_progress"
-        """
-        if success_rate >= 80.0:
-            return "mastered"
-        elif success_rate < 50.0:
-            return "needs_work"
-        else:
-            return "in_progress"
-    
+
     def get_topics_mastered(self, user_id: str) -> List[str]:
-        """
-        Get list of topics with success rate >= 80%.
-        
-        Args:
-            user_id: ID of the user
-            
-        Returns:
-            List of mastered topic names
-        """
+        """Get topics with >= 80% success rate."""
         progress = self.get_progress(user_id)
         return [
-            topic for topic, data in progress['topicProgress'].items()
-            if data['percentage'] >= 80.0
+            topic for topic, data in progress.get('topicProgress', {}).items()
+            if data.get('percentage', 0) >= 80.0
         ]
-    
+
     def get_topics_needing_work(self, user_id: str) -> List[str]:
-        """
-        Get list of topics with success rate < 50%.
-        
-        Args:
-            user_id: ID of the user
-            
-        Returns:
-            List of topic names needing improvement
-        """
+        """Get topics with < 50% success rate."""
         progress = self.get_progress(user_id)
         return [
-            topic for topic, data in progress['topicProgress'].items()
-            if data['percentage'] < 50.0
+            topic for topic, data in progress.get('topicProgress', {}).items()
+            if data.get('percentage', 0) < 50.0
         ]
+        
+    def get_learning_profile(self, user_id: str) -> Dict[str, Any]:
+        """Generate comprehensive mastery profile grounded in cognitive science."""
+        results = QuizResult.query.filter_by(user_id=user_id, is_archived=False).order_by(QuizResult.created_at.asc()).all()
+        
+        if not results:
+            return {
+                'masteryLevel': 'Novice Learner',
+                'masteryScore': 0,
+                'totalAttempts': 0,
+                'improvementRate': 0.0,
+                'streakDays': 0,
+                'retrievalEfficiency': 'Establishing Baseline',
+                'academicReference': 'Roediger & Butler (2011): Retrieval practice strengthens memory retention and facilitates higher-order knowledge transfer.',
+                'topicProgression': []
+            }
+            
+        total_quizzes = len(results)
+        percentages = [r.percentage for r in results]
+        avg_score = sum(percentages) / total_quizzes
+        
+        # Improvement rate between first half and second half
+        improvement = 0.0
+        if total_quizzes >= 2:
+            mid = total_quizzes // 2
+            first_half = sum(percentages[:mid]) / max(mid, 1)
+            second_half = sum(percentages[mid:]) / max(total_quizzes - mid, 1)
+            improvement = round(second_half - first_half, 1)
+            
+        # Mastery Level determination
+        if avg_score >= 90:
+            level = "Mastery Scholar"
+        elif avg_score >= 80:
+            level = "Advanced Practitioner"
+        elif avg_score >= 65:
+            level = "Developing Thinker"
+        else:
+            level = "Active Apprentice"
+            
+        # Calculate genuine consecutive daily study streak
+        active_dates = sorted(
+            {r.created_at.date() for r in results if r.created_at is not None},
+            reverse=True
+        )
+        streak = 0
+        if active_dates:
+            today = datetime.utcnow().date()
+            latest = active_dates[0]
+            # Streak continues if learner practiced today or yesterday
+            if latest in (today, today - timedelta(days=1)):
+                expected = latest
+                for d in active_dates:
+                    if d == expected:
+                        streak += 1
+                        expected -= timedelta(days=1)
+                    elif d > expected:
+                        continue
+                    else:
+                        break
+
+        # Topic progression mapping
+        topic_history = defaultdict(list)
+        for r in results:
+            t = r.topic or 'General'
+            topic_history[t].append({
+                'score': r.percentage,
+                'date': r.created_at.isoformat() if r.created_at else None
+            })
+            
+        topic_progression = []
+        for t, attempts in topic_history.items():
+            topic_progression.append({
+                'topic': t,
+                'attemptsCount': len(attempts),
+                'firstScore': attempts[0]['score'],
+                'latestScore': attempts[-1]['score'],
+                'netGain': round(attempts[-1]['score'] - attempts[0]['score'], 1)
+            })
+            
+        return {
+            'masteryLevel': level,
+            'masteryScore': round(avg_score, 1),
+            'totalAttempts': total_quizzes,
+            'improvementRate': improvement,
+            'streakDays': streak,
+            'retrievalEfficiency': 'High Retention' if avg_score >= 80 else 'Building Fluency',
+            'academicReference': 'Karpicke & Blunt (2011): Retrieval practice produces more durable learning than elaborative studying or concept mapping.',
+            'topicProgression': topic_progression
+        }
+        
+    def get_mistake_patterns(self, user_id: str) -> Dict[str, Any]:
+        """Analyze mistakes across quizzes and generate Socratic remediation hints."""
+        quizzes = QuizData.query.filter_by(user_id=user_id, is_submitted=True, is_archived=False).all()
+        quiz_results = QuizResult.query.filter_by(user_id=user_id, is_archived=False).all()
+        results_by_quiz = {r.quiz_id: r for r in quiz_results}
+        
+        concept_mistakes = defaultdict(int)
+        
+        for q in quizzes:
+            q_result = results_by_quiz.get(q.id)
+            if not q_result:
+                continue
+
+            # If user scored 100%, there are zero mistakes for this quiz!
+            if q_result.total_questions > 0 and q_result.score == q_result.total_questions:
+                continue
+
+            stored = q.get_stored_data()
+            questions = stored.get('questions', [])
+            submitted_answers = (q_result.answers or {}).get('submitted', [])
+
+            if isinstance(submitted_answers, list) and len(submitted_answers) == len(questions):
+                grade_info = q.grade(submitted_answers)
+                for res_item in grade_info.get('results', []):
+                    if not res_item.get('isCorrect'):
+                        cid = res_item.get('topic') or res_item.get('conceptId') or 'Core Principle'
+                        concept_mistakes[cid] += 1
+            else:
+                if q_result.percentage < 80.0:
+                    topic = q.topic or 'General Concept'
+                    concept_mistakes[topic] += max(1, q_result.total_questions - q_result.score)
+                
+        # Top weak areas
+        weak_concepts = sorted(concept_mistakes.items(), key=lambda x: x[1], reverse=True)[:5]
+        
+        mistake_items = []
+        for concept, count in weak_concepts:
+            mistake_items.append({
+                'concept': concept,
+                'mistakeCount': count,
+                'recommendation': f"Ask AI Tutor: 'Can you guide me through {concept} with a real-life analogy?'",
+                'action': 'socratic_remediation'
+            })
+            
+        return {
+            'totalMistakesTracked': sum(concept_mistakes.values()),
+            'weakAreas': mistake_items,
+            'educationalNote': 'Mistakes are normal and necessary for cognitive schema reconstruction.'
+        }
+        
+    def get_recommendations(self, user_id: str) -> List[Dict[str, Any]]:
+        """AI-driven study recommendations based on student's weak areas and quizzes."""
+        progress = self.get_progress(user_id)
+        recommendations = []
+        
+        for topic, data in progress.get('topicProgress', {}).items():
+            if data['percentage'] < 75.0:
+                recommendations.append({
+                    'type': 'quiz_retake',
+                    'title': f"Retake & Master: {topic}",
+                    'description': f"Current accuracy is {data['percentage']}%. Practice a 5-question Socratic retake to solidify memory traces.",
+                    'topic': topic,
+                    'priority': 'high'
+                })
+            else:
+                recommendations.append({
+                    'type': 'retrieval_challenge',
+                    'title': f"Deepen Mastery: {topic}",
+                    'description': f"Strong score ({data['percentage']}%). Challenge yourself with scenario-based critical thinking questions.",
+                    'topic': topic,
+                    'priority': 'medium'
+                })
+                
+        if not recommendations:
+            recommendations.append({
+                'type': 'onboarding',
+                'title': "Begin Retrieval Practice",
+                'description': "Select your study materials or choose a topic to take your first diagnostic quiz.",
+                'topic': 'Getting Started',
+                'priority': 'normal'
+            })
+            
+        return recommendations
+        
+    def get_mastery_dashboard(self, user_id: str) -> Dict[str, Any]:
+        """Unified analytics combining profile, progress, mistakes, and recommendations."""
+        return {
+            'profile': self.get_learning_profile(user_id),
+            'progress': self.get_progress(user_id),
+            'mistakes': self.get_mistake_patterns(user_id),
+            'recommendations': self.get_recommendations(user_id)
+        }
 
 
-# Global progress service instance
 progress_service = ProgressService()

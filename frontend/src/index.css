@@ -1,28 +1,88 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-/* Dark mode class strategy */
+/* Dark mode class strategy for Tailwind */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Brand palette */
+/* Brand & Dynamic Semantic Theme Tokens */
 :root {
-  --color-primary: #22C7FF;
-  --color-accent: #5B5FFF;
-  --kn-bg: #0B1220;
-  --kn-bg-secondary: #111827;
+  --color-primary: #2563EB;
+  --color-accent: #0891B2;
+  color-scheme: light;
+
+  /* Semantic Theme Tokens (Light Mode - Warm Paper / Alabaster Editorial) */
+  --bg-primary: #FAF9F6;
+  --bg-secondary: #F3F2EE;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-glass: rgba(255, 255, 255, 0.88);
+  --bg-card: #FFFFFF;
+  --bg-input: #FFFFFF;
+  --text-primary: #141413;
+  --text-secondary: #52514E;
+  --text-muted: #85837E;
+  --border-subtle: #E6E4DD;
+  --border-main: #D4D1C7;
+  --border-strong: #C4C0B4;
+  --accent-primary: #2563EB;
+  --accent-secondary: #0891B2;
+
+  /* Aliases for backwards compatibility */
+  --bg-main: var(--bg-primary);
+  --bg-surface-elevated: var(--bg-secondary);
+  --bg-card-glass: var(--bg-glass);
+  --border-input: var(--border-main);
+  --text-main: var(--text-primary);
+  --dot-color: rgba(20, 20, 19, 0.05);
+  --card-shadow: 0 2px 8px -2px rgba(20, 20, 19, 0.04), 0 1px 2px -1px rgba(20, 20, 19, 0.02);
+  --card-shadow-hover: 0 10px 24px -4px rgba(20, 20, 19, 0.08), 0 2px 6px -2px rgba(20, 20, 19, 0.04);
+}
+
+html.dark, :root.dark {
+  color-scheme: dark;
+
+  /* Semantic Theme Tokens (Dark Mode - Crafted Carbon Slate) */
+  --bg-primary: #0F1115;
+  --bg-secondary: #161920;
+  --bg-surface: #1C2029;
+  --bg-elevated: #242936;
+  --bg-glass: rgba(28, 32, 41, 0.75);
+  --bg-card: #1C2029;
+  --bg-input: #161920;
+  --text-primary: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-main: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --accent-primary: #3B82F6;
+  --accent-secondary: #06B6D4;
+
+  /* Aliases for backwards compatibility */
+  --bg-main: var(--bg-primary);
+  --bg-surface-elevated: var(--bg-secondary);
+  --bg-card-glass: var(--bg-glass);
+  --border-input: var(--border-main);
+  --text-main: var(--text-primary);
+  --dot-color: rgba(255, 255, 255, 0.03);
+  --card-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.35);
+  --card-shadow-hover: 0 12px 30px 0 rgba(0, 0, 0, 0.45);
 }
 
 body {
-  @apply bg-[#0B1220] text-[#E2E8F0];
   margin: 0;
   min-height: 100vh;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #root {
   min-height: 100vh;
+  background-color: var(--bg-primary);
 }
 
 /* Smooth scrolling */
@@ -32,6 +92,108 @@ html {
 
 /* Selection color */
 ::selection {
-  background: rgba(34, 199, 255, 0.25);
-  color: #fff;
+  background: rgba(37, 99, 235, 0.2);
+  color: inherit;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TACTILE CRAFT BUTTONS & INTERFACES
+   ═══════════════════════════════════════════════════════════ */
+.kn-btn-primary {
+  background-color: #2563EB;
+  color: #FFFFFF;
+  font-weight: 500;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 6px rgba(37, 99, 235, 0.2);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.kn-btn-primary:hover {
+  background-color: #1D4ED8;
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 12px rgba(37, 99, 235, 0.28);
+}
+.kn-btn-primary:active {
+  transform: translateY(0);
+  background-color: #1E40AF;
+}
+
+html.dark .kn-btn-primary {
+  background-color: #3B82F6;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+html.dark .kn-btn-primary:hover {
+  background-color: #2563EB;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 14px rgba(59, 130, 246, 0.3);
+}
+
+.kn-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.kn-card:hover {
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* Dash card backwards compatibility */
+.dash-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--card-shadow);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.dash-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  border-color: var(--border-main);
+}
+
+/* Socratic tutor response in both modes */
+.tutor-response-body {
+  color: var(--text-primary);
+  line-height: 1.65;
+}
+.tutor-response-body h2,
+.tutor-response-body h3,
+.tutor-response-body h4 {
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+  font-weight: 600;
+}
+.tutor-response-body p,
+.tutor-response-body li {
+  color: var(--text-secondary);
+}
+.tutor-response-body strong {
+  color: var(--text-primary);
+}
+.tutor-response-body code {
+  background-color: var(--bg-secondary);
+  color: #2563EB;
+  border: 1px solid var(--border-subtle);
+  padding: 0.15rem 0.35rem;
+  border-radius: 6px;
+  font-size: 0.875em;
+}
+html.dark .tutor-response-body code {
+  color: #60A5FA;
+}
+.tutor-response-body pre {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-radius: 10px;
+  padding: 0.85rem;
+}
+.tutor-response-body .katex-display {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+.tutor-response-body .katex,
+.katex {
+  color: var(--text-primary);
 }

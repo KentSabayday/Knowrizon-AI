@@ -10,6 +10,11 @@ import './App.css'
 function AppContent() {
   const { isAuthenticated, isLoading, token, user, isAnonymous } = useAuth();
 
+  // Strict role normalization
+  const rawRole = user?.role || (user?.isAdmin || user?.is_admin ? 'admin' : (isAnonymous ? 'guest' : 'student'));
+  const userRole = String(rawRole).toLowerCase();
+  const isAdmin = Boolean(user?.isAdmin || user?.is_admin || userRole === 'admin');
+
   // Connect Pusher when authenticated
   useEffect(() => {
     if (isAuthenticated && token) {
@@ -32,8 +37,8 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF9F6] dark:bg-[#0F1115]">
+        <div className="text-slate-600 dark:text-[#94A3B8]">Loading...</div>
       </div>
     );
   }
@@ -42,12 +47,12 @@ function AppContent() {
     return <LandingPage onAuthSuccess={() => {}} />;
   }
 
-  // Anonymous users get a streamlined layout without social feature providers
-  if (isAnonymous) {
+  // Anonymous users and Admins get a streamlined layout without student social call bubbles
+  if (isAnonymous || isAdmin) {
     return <MainLayout />;
   }
 
-  // Registered users get the full experience with all providers
+  // Registered students get the full peer-learning experience with social providers
   return (
     <FriendsProvider>
       <ChatProvider>

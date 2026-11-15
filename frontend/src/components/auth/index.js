@@ -5,3 +5,5 @@ export { AuthPage } from './AuthPage';
 export { AuthMascot } from './AuthMascot';
 export { AuthLoginForm } from './AuthLoginForm';
 export { AuthRegisterForm } from './AuthRegisterForm';
+export { ProtectedRoute } from './ProtectedRoute';
+export { UnauthorizedView } from './UnauthorizedView';

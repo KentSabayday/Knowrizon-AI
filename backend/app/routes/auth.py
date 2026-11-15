@@ -1,47 +1,10 @@
 """Authentication routes for user registration, login, and anonymous sessions."""
-from functools import wraps
 from flask import Blueprint, request, jsonify, g
 from app.services.auth_service import auth_service
+from app.decorators import require_auth
 from app.errors import db_error_handler
 
 auth_bp = Blueprint('auth', __name__)
-
-
-def require_auth(f):
-    """
-    Decorator to require authentication for a route.
-    
-    Validates the Authorization header and sets g.current_user.
-    Falls back to ?token= query param for iframe/media sources
-    that cannot send custom headers.
-    Returns 401 if authentication fails.
-    """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        token = None
-
-        # Primary: Authorization header
-        auth_header = request.headers.get('Authorization')
-        if auth_header and auth_header.startswith('Bearer '):
-            token = auth_header.split(' ')[1]
-
-        # Fallback: query param (for iframe/video src that can't set headers)
-        if not token:
-            token = request.args.get('token')
-
-        if not token:
-            return jsonify({'error': 'Authorization required'}), 401
-        
-        user = auth_service.validate_token(token)
-        
-        if not user:
-            return jsonify({'error': 'Session expired, please login again'}), 401
-        
-        # Store user in Flask's g context
-        g.current_user = user
-        return f(*args, **kwargs)
-    
-    return decorated_function
 
 
 @auth_bp.route('/register', methods=['POST'])
@@ -68,6 +31,9 @@ def register():
     email = data.get('email')
     password = data.get('password')
     name = data.get('name')
+    school = data.get('school')
+    course = data.get('course')
+    year_level = data.get('year_level') or data.get('yearLevel')
     
     # Validate required fields
     if not email:
@@ -77,8 +43,15 @@ def register():
     if not name:
         return jsonify({'error': 'Name is required'}), 400
     
-    # Use the new database-backed register method
-    result, error = auth_service.register(email, password, name)
+    # Use the database-backed register method with student institutional scoping
+    result, error = auth_service.register(
+        email=email,
+        password=password,
+        name=name,
+        school=school,
+        course=course,
+        year_level=year_level
+    )
     
     if error:
         if "already exists" in error:

@@ -61,7 +61,7 @@ export function ReviewMode({
   // Study Review Mode — show everything upfront
   if (mode === 'study_review') {
     return (
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="w-full max-w-5xl mx-auto p-4 sm:p-6 md:p-8 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <KnowrizonMascot state={MASCOT_STATES.THINKING} size={40} />
@@ -166,7 +166,7 @@ export function ReviewMode({
   const selectedAnswer = retryAnswers[currentIndex];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="w-full max-w-5xl mx-auto p-4 sm:p-6 md:p-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

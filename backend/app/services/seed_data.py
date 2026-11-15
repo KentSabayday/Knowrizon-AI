@@ -21,6 +21,13 @@ from app.services.content_service import content_service
 # Demo user accounts
 DEMO_USERS = [
     {
+        "email": "admin@knowrizon.ai",
+        "password": "AdminPassword123!",
+        "name": "System Administrator",
+        "role": "admin",
+        "is_admin": True
+    },
+    {
         "email": "demo@knowrizon.ai",
         "password": "demo123",
         "name": "Demo User"
@@ -279,7 +286,13 @@ class SeedDataService:
             )
             
             if user:
-                self._demo_user_ids[user_data["email"]] = user.id
+                actual_user = user.get('user') if isinstance(user, dict) else user
+                if user_data.get('role') and hasattr(actual_user, 'role'):
+                    actual_user.role = user_data['role']
+                    actual_user.is_admin = bool(user_data.get('is_admin', False))
+                    from app.database import db
+                    db.session.commit()
+                self._demo_user_ids[user_data["email"]] = getattr(actual_user, 'id', None)
                 created_users.append({
                     "email": user_data["email"],
                     "name": user_data["name"],

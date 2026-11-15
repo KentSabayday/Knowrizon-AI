@@ -71,6 +71,12 @@ def handle_database_error(error: Exception) -> tuple:
                 'code': 'INVALID_REFERENCE'
             }, 400
         
+        if 'FOREIGN KEY constraint' in error_msg or 'foreign key' in error_msg.lower():
+            return {
+                'error': 'Referenced record does not exist.',
+                'code': 'INVALID_REFERENCE'
+            }, 400
+        
         return {
             'error': 'Data integrity error. Please check your input.',
             'code': 'INTEGRITY_ERROR'

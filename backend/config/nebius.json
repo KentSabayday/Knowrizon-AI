@@ -1,38 +1,38 @@
 {
   "nebius": {
-    "base_url": "https://api.studio.nebius.com/v1/",
+    "base_url": "https://api.tokenfactory.eu-north1.nebius.com/v1/",
     "models": {
       "tutor": {
         "model_id": "openai/gpt-oss-120b",
-        "fallback_model_id": "deepseek-ai/DeepSeek-V3",
+        "fallback_model_id": "openai/gpt-oss-120b",
         "temperature": 0.7,
         "max_tokens": 2048,
         "top_p": 1.0
       },
       "quiz": {
         "model_id": "openai/gpt-oss-120b",
-        "fallback_model_id": "deepseek-ai/DeepSeek-V3",
+        "fallback_model_id": "openai/gpt-oss-120b",
         "temperature": 0.3,
-        "max_tokens": 4096,
+        "max_tokens": 8192,
         "top_p": 1.0
       },
       "content": {
         "model_id": "openai/gpt-oss-120b",
-        "fallback_model_id": "deepseek-ai/DeepSeek-V3",
+        "fallback_model_id": "openai/gpt-oss-120b",
         "temperature": 0.5,
         "max_tokens": 4096,
         "top_p": 1.0
       },
       "vision": {
-        "model_id": "google/gemma-3-27b-it-fast",
-        "fallback_model_id": "google/gemma-3-27b-it",
+        "model_id": "nvidia/Nemotron-3.5-Super-VL",
+        "fallback_model_id": "nvidia/Nemotron-3.5-Super-VL",
         "temperature": 0.5,
         "max_tokens": 2048,
         "top_p": 1.0
       },
       "embedding": {
-        "model_id": "intfloat/e5-mistral-7b-instruct",
-        "fallback_model_id": "BAAI/bge-en-icl"
+        "model_id": "openai/gpt-oss-120b",
+        "fallback_model_id": "openai/gpt-oss-120b"
       }
     },
     "retry": {

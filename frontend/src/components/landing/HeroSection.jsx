@@ -52,19 +52,19 @@ export function HeroSection({ onGetStarted }) {
           {/* ===== Left column: Story-driven copy ===== */}
           <div className="flex-1 text-center lg:text-left max-w-2xl lg:max-w-none order-2 lg:order-1">
             {/* Tag */}
-            <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#22C7FF]/20 bg-[#22C7FF]/[0.06] mb-6">
-              <span className="w-2 h-2 rounded-full bg-[#22C7FF] animate-pulse" />
-              <span className="text-sm text-[#22C7FF] font-medium">AI-Powered Learning Platform</span>
+            <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-blue-200 bg-blue-50/70 dark:border-blue-800/40 dark:bg-blue-950/40 mb-6 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse" />
+              <span className="text-xs text-blue-700 dark:text-blue-300 font-semibold">AI-Powered Learning Platform</span>
             </motion.div>
 
             {/* Headline */}
-            <motion.h1 variants={itemVariants} className="text-5xl md:text-6xl lg:text-[4.25rem] font-extrabold text-white leading-[1.08] tracking-tight mb-6">
+            <motion.h1 variants={itemVariants} className="text-5xl md:text-6xl lg:text-[4.25rem] font-extrabold text-slate-900 dark:text-white leading-[1.08] tracking-tight mb-6">
               Your Personal AI{' '}
               <span className="kn-gradient-text">Study Companion</span>
             </motion.h1>
 
             {/* Subtitle */}
-            <motion.p variants={itemVariants} className="text-lg md:text-xl text-[#94A3B8] max-w-xl lg:max-w-lg mb-8 leading-relaxed">
+            <motion.p variants={itemVariants} className="text-lg md:text-xl text-slate-600 dark:text-[#94A3B8] max-w-xl lg:max-w-lg mb-8 leading-relaxed font-normal">
               Upload notes, ask questions, generate quizzes, and learn faster — with your own AI tutor that adapts to how you study.
             </motion.p>
 
@@ -72,26 +72,26 @@ export function HeroSection({ onGetStarted }) {
             <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-5">
               <button
                 onClick={onGetStarted}
-                className="group px-8 py-3.5 text-base font-semibold text-white rounded-xl kn-gradient-btn inline-flex items-center justify-center gap-2"
+                className="group px-7 py-3 text-sm font-semibold text-white rounded-xl kn-btn-primary inline-flex items-center justify-center gap-2 cursor-pointer"
               >
                 Start Learning Free
                 <svg className="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
               </button>
-              <button className="px-8 py-3.5 text-base font-medium text-[#94A3B8] rounded-xl border border-white/[0.1] hover:border-white/[0.2] hover:text-white hover:bg-white/[0.03] transition-all duration-300 inline-flex items-center justify-center gap-2">
+              <button className="px-7 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 rounded-xl border border-slate-300 dark:border-white/[0.1] hover:border-slate-400 dark:hover:border-white/[0.2] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/70 dark:hover:bg-white/[0.03] transition-all duration-300 inline-flex items-center justify-center gap-2 cursor-pointer">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                 Watch Demo
               </button>
             </motion.div>
 
             {/* Micro note */}
-            <motion.p variants={itemVariants} className="text-sm text-[#475569] mb-8">
+            <motion.p variants={itemVariants} className="text-sm text-slate-500 dark:text-[#475569] mb-8 font-medium">
               No credit card required · Free forever for students
             </motion.p>
 
             {/* Trust badges */}
             <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-5 justify-center lg:justify-start">
               {trustBadges.map((badge) => (
-                <div key={badge.label} className="flex items-center gap-1.5 text-sm text-[#64748B]">
+                <div key={badge.label} className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-[#64748B] font-medium">
                   <span className="text-base">{badge.icon}</span>
                   <span>{badge.label}</span>
                 </div>
@@ -103,7 +103,7 @@ export function HeroSection({ onGetStarted }) {
           <motion.div variants={itemVariants} className="relative flex-1 flex justify-center items-center order-1 lg:order-2">
             {/* Glowing circle behind mascot */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[280px] h-[280px] md:w-[360px] md:h-[360px] lg:w-[420px] lg:h-[420px] rounded-full bg-[#22C7FF]/[0.06] blur-[60px] kn-glow-pulse" />
+              <div className="w-[280px] h-[280px] md:w-[360px] md:h-[360px] lg:w-[420px] lg:h-[420px] rounded-full bg-blue-600/[0.06] dark:bg-blue-500/[0.04] blur-[60px] kn-glow-pulse" />
             </div>
 
             {/* Floating knowledge icons */}
@@ -112,7 +112,7 @@ export function HeroSection({ onGetStarted }) {
             <FloatingIcon emoji="🧠" className="absolute bottom-[25%] left-[0%] md:left-[-5%]" delay={2.5} />
             <FloatingIcon emoji="✨" className="absolute bottom-[18%] right-[5%] md:right-[0%]" delay={3.8} />
 
-            {/* Mascot — UNTOUCHED, visual centerpiece */}
+            {/* Mascot — visual centerpiece */}
             <KnowrizonMascot className="w-[220px] md:w-[280px] lg:w-[340px] relative z-10" />
 
             {/* ===== Floating product preview: cinematic chat card ===== */}
@@ -124,21 +124,21 @@ export function HeroSection({ onGetStarted }) {
                 y: chatStep >= 1 ? 0 : 10,
               }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="absolute -right-2 top-[10%] md:right-[-50px] lg:right-[-60px] w-60 md:w-64 kn-glass rounded-2xl p-4 z-20 shadow-xl shadow-black/30"
+              className="absolute -right-2 top-[10%] md:right-[-50px] lg:right-[-60px] w-60 md:w-64 bg-white/95 dark:bg-[#161920]/95 border border-slate-200/90 dark:border-white/[0.08] rounded-2xl p-4 z-20 shadow-xl shadow-slate-900/10 dark:shadow-black/40 backdrop-blur-md"
             >
               {/* Header */}
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-[#22C7FF] to-[#5B5FFF] flex items-center justify-center">
+                <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center shadow-xs">
                   <span className="text-[10px] font-bold text-white">K</span>
                 </div>
-                <span className="text-xs font-medium text-white">Knowri AI</span>
-                <span className="ml-auto text-[10px] text-[#22C7FF]">● Online</span>
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-100">Knowri AI</span>
+                <span className="ml-auto text-[10px] text-blue-600 dark:text-blue-400 font-semibold">● Online</span>
               </div>
 
               {/* User message */}
               {chatStep >= 1 && (
                 <div className="mb-2 flex justify-end">
-                  <div className="bg-[#22C7FF]/10 rounded-xl rounded-br-sm px-3 py-1.5 text-xs text-[#E2E8F0]">
+                  <div className="bg-blue-600 text-white rounded-xl rounded-br-xs px-3 py-1.5 text-xs font-medium shadow-2xs">
                     Explain photosynthesis 🌱
                   </div>
                 </div>
@@ -147,9 +147,9 @@ export function HeroSection({ onGetStarted }) {
               {/* Typing indicator */}
               {chatStep >= 2 && chatStep < 3 && (
                 <div className="flex items-center gap-1 px-2 py-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#22C7FF] kn-typing-dot" style={{ animationDelay: '0s' }} />
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#22C7FF] kn-typing-dot" style={{ animationDelay: '0.2s' }} />
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#22C7FF] kn-typing-dot" style={{ animationDelay: '0.4s' }} />
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 kn-typing-dot" style={{ animationDelay: '0s' }} />
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 kn-typing-dot" style={{ animationDelay: '0.2s' }} />
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 kn-typing-dot" style={{ animationDelay: '0.4s' }} />
                 </div>
               )}
 
@@ -159,12 +159,12 @@ export function HeroSection({ onGetStarted }) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.4 }}
-                  className="text-xs text-[#94A3B8] leading-relaxed"
+                  className="text-xs text-slate-600 dark:text-[#94A3B8] leading-relaxed"
                 >
                   Photosynthesis converts sunlight into energy. Plants use CO₂ + H₂O → glucose + O₂
                   <div className="mt-2 flex gap-1.5">
                     {['Summary', 'Quiz', 'Flashcards'].map((t) => (
-                      <span key={t} className="px-2 py-0.5 rounded-md bg-white/[0.05] text-[10px] text-[#22C7FF] border border-[#22C7FF]/10">
+                      <span key={t} className="px-2 py-0.5 rounded-md bg-slate-100 text-blue-600 border border-slate-200 dark:bg-white/[0.05] dark:text-blue-400 dark:border-blue-400/20 text-[10px] font-medium">
                         {t}
                       </span>
                     ))}
@@ -185,10 +185,12 @@ function FloatingIcon({ emoji, className, delay = 0 }) {
       initial={{ opacity: 0, scale: 0 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: delay * 0.25 + 1.2, duration: 0.5, ease: 'backOut' }}
-      className={`${className} w-10 h-10 rounded-xl kn-glass flex items-center justify-center text-lg kn-float-icon pointer-events-none`}
+      className={`${className} w-10 h-10 rounded-xl bg-white/95 dark:bg-[#161920]/90 border border-slate-200/90 dark:border-white/[0.08] text-slate-700 dark:text-slate-200 flex items-center justify-center text-lg kn-float-icon pointer-events-none shadow-md backdrop-blur-md`}
       style={{ animationDelay: `${delay}s` }}
     >
       {emoji}
     </motion.div>
   );
 }
+
+export default HeroSection;

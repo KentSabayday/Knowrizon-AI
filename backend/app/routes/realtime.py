@@ -25,13 +25,43 @@ realtime_bp = Blueprint('realtime', __name__)
 @realtime_bp.route('/pusher/auth', methods=['POST'])
 @require_auth
 def pusher_auth():
-    """Authenticate a Pusher private or presence channel subscription."""
+    """Authenticate a Pusher private or presence channel subscription with strict channel authorization."""
     user = g.current_user
     socket_id = request.form.get('socket_id')
     channel_name = request.form.get('channel_name')
 
     if not socket_id or not channel_name:
         return jsonify({'error': 'socket_id and channel_name required'}), 400
+
+    # 1. Authorize private user channel (must match own user ID or be admin)
+    if channel_name.startswith('private-user-'):
+        target_uid = channel_name.replace('private-user-', '')
+        if target_uid != str(user.id) and not getattr(user, 'is_administrator', False):
+            return jsonify({'error': 'Unauthorized: Cannot subscribe to another user channel'}), 403
+
+    # 2. Authorize private direct chat channel (must be participant or admin)
+    elif channel_name.startswith('private-direct-'):
+        chat_id = channel_name.replace('private-direct-', '')
+        from app.models.direct_chat import DirectChat
+        chat = DirectChat.query.get(chat_id)
+        if chat and str(user.id) not in (str(chat.user1_id), str(chat.user2_id)) and not getattr(user, 'is_administrator', False):
+            return jsonify({'error': 'Unauthorized: Not a participant in this direct chat'}), 403
+
+    # 3. Authorize private group channel (must be member or admin)
+    elif channel_name.startswith('private-group-'):
+        group_id = channel_name.replace('private-group-', '')
+        from app.models.group import GroupMember
+        membership = GroupMember.query.filter_by(group_id=group_id, user_id=user.id).first()
+        if not membership and not getattr(user, 'is_administrator', False):
+            return jsonify({'error': 'Unauthorized: Not a member of this group'}), 403
+
+    # 4. Authorize presence call channel (must be caller or receiver or participant)
+    elif channel_name.startswith('presence-call-'):
+        call_id = channel_name.replace('presence-call-', '')
+        from app.models.call import Call
+        call_record = Call.query.get(call_id)
+        if call_record and str(user.id) not in (str(call_record.caller_id), str(call_record.receiver_id)) and not getattr(user, 'is_administrator', False):
+            return jsonify({'error': 'Unauthorized: Not a participant in this call'}), 403
 
     # Presence channels require user data
     if channel_name.startswith('presence-'):

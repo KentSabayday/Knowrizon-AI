@@ -3,7 +3,7 @@ import os
 from flask import Blueprint, request, jsonify, g, send_file
 from app.services.content_service import content_service
 from app.services.auth_service import auth_service
-from app.routes.auth import require_auth
+from app.decorators import require_auth, require_media_auth
 from app.errors import db_error_handler
 
 content_bp = Blueprint('content', __name__)
@@ -90,6 +90,8 @@ def upload_content():
             # Content uploaded but processing failed
             return jsonify({
                 'contentId': content.id,
+                'content_id': content.id,
+                'id': content.id,
                 'filename': content.filename,
                 'fileType': content.content_type,
                 'warning': f'File uploaded but processing failed: {process_error}',
@@ -99,10 +101,14 @@ def upload_content():
         
         return jsonify({
             'contentId': processed_content.id,
+            'content_id': processed_content.id,
+            'id': processed_content.id,
             'filename': processed_content.filename,
             'fileType': processed_content.content_type,
             'summary': processed_content.summary,
-            'keyPoints': processed_content.key_points
+            'keyPoints': processed_content.key_points or [],
+            'extractedText': processed_content.extracted_text or '',
+            'processingStatus': processed_content.processing_status
         }), 201
         
     except Exception as e:
@@ -330,12 +336,13 @@ def reprocess_content(content_id: str):
     user_id = user.id
     
     # Verify ownership
-    content = content_service.get_content(content_id, user_id)
+    content = content_service.get_content(content_id)
     if not content:
-        content_exists = content_service.get_content(content_id)
-        if content_exists:
-            return jsonify({'error': 'Not authorized to access this content'}), 403
         return jsonify({'error': 'Content not found'}), 404
+
+    # Allow access if user is owner, administrator, or authenticated student/instructor/dean in academic ecosystem
+    if content.user_id != user_id and not (user.is_administrator or getattr(user, 'role', '') in ['dean', 'instructor', 'student']):
+        return jsonify({'error': 'Not authorized to access this content'}), 403
     
     # Reprocess the content
     processed_content, error = content_service.process_content(content_id)
@@ -355,7 +362,7 @@ def reprocess_content(content_id: str):
 
 
 @content_bp.route('/<content_id>/file', methods=['GET'])
-@require_auth
+@require_media_auth
 @db_error_handler
 def serve_content_file(content_id: str):
     """
@@ -381,30 +388,42 @@ def serve_content_file(content_id: str):
     user = g.current_user
     user_id = user.id
 
-    content = content_service.get_content(content_id, user_id)
+    content = content_service.get_content(content_id)
     if not content:
-        content_exists = content_service.get_content(content_id)
-        if content_exists:
-            return jsonify({'error': 'Not authorized to access this content'}), 403
         return jsonify({'error': 'Content not found'}), 404
 
-    # Determine MIME type
-    mime_map = {
-        'pdf': 'application/pdf',
-        'video': None,  # detect from extension
-    }
-    mime_type = mime_map.get(content.content_type)
+    # Allow access if user is owner, administrator, or authenticated student/instructor/dean in academic ecosystem
+    if content.user_id != user_id and not (user.is_administrator or getattr(user, 'role', '') in ['dean', 'instructor', 'student']):
+        return jsonify({'error': 'Not authorized to access this content'}), 403
 
-    if mime_type is None:
-        ext = os.path.splitext(content.filename)[1].lower()
-        video_mimes = {
-            '.mp4': 'video/mp4',
-            '.webm': 'video/webm',
-            '.mov': 'video/quicktime',
-            '.avi': 'video/x-msvideo',
-            '.mkv': 'video/x-matroska',
-        }
-        mime_type = video_mimes.get(ext, 'application/octet-stream')
+    # Determine MIME type with comprehensive support for documents, presentations, images, and videos
+    ext = os.path.splitext(content.filename)[1].lower()
+    ext_mimes = {
+        '.pdf': 'application/pdf',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.bmp': 'image/bmp',
+        '.svg': 'image/svg+xml',
+        '.mp4': 'video/mp4',
+        '.webm': 'video/webm',
+        '.mov': 'video/quicktime',
+        '.avi': 'video/x-msvideo',
+        '.mkv': 'video/x-matroska',
+        '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        '.ppt': 'application/vnd.ms-powerpoint',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.doc': 'application/msword',
+        '.txt': 'text/plain; charset=utf-8',
+    }
+    mime_type = ext_mimes.get(ext)
+    if not mime_type:
+        import mimetypes
+        mime_type, _ = mimetypes.guess_type(content.filename)
+    if not mime_type:
+        mime_type = 'application/octet-stream'
 
     # Strategy 1: serve from filesystem (fast, works within same invocation)
     file_path = content.file_path
@@ -427,3 +446,46 @@ def serve_content_file(content_id: str):
 
     return jsonify({'error': 'File no longer available'}), 404
 
+
+@content_bp.route('/<content_id>/summary', methods=['GET'])
+@require_auth
+@db_error_handler
+def get_full_document_summary(content_id):
+    """Get complete structured document summary (Executive summary, key concepts, vocabulary, objectives, discussion topics, FAQ, citation map)."""
+    user = g.current_user
+    content = content_service.get_content(content_id, user.id)
+    if not content:
+        return jsonify({'error': 'Document not found'}), 404
+        
+    return jsonify(content.get_full_summary()), 200
+
+
+@content_bp.route('/summaries', methods=['GET'])
+@require_auth
+@db_error_handler
+def get_all_summaries():
+    """Get summary cards for all user documents for the workspace document panel."""
+    user = g.current_user
+    contents = content_service.get_user_content(user.id)
+    return jsonify({
+        'summaries': [c.get_summary_card() for c in contents]
+    }), 200
+
+
+@content_bp.route('/batch-context', methods=['POST'])
+@require_auth
+@db_error_handler
+def get_batch_context():
+    """Combine multiple selected files into unified Socratic learning context."""
+    user = g.current_user
+    data = request.get_json() or {}
+    content_ids = data.get('contentIds', [])
+    
+    if not content_ids or not isinstance(content_ids, list):
+        return jsonify({'context': []}), 200
+        
+    contexts = content_service.get_batch_context(content_ids, user.id)
+    return jsonify({
+        'context': contexts,
+        'count': len(contexts)
+    }), 200

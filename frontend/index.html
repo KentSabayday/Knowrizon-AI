@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="light" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
@@ -11,6 +11,31 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <title>Knowrizon AI — Your Personal AI Study Companion</title>
+    <script>
+      (function() {
+        try {
+          var isMigrated = localStorage.getItem('knowrizon-theme-default-v2');
+          if (!isMigrated) {
+            localStorage.setItem('knowrizon-theme-default-v2', 'true');
+            localStorage.setItem('knowrizon-theme', 'light');
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+            document.documentElement.setAttribute('data-theme', 'light');
+            return;
+          }
+          var theme = localStorage.getItem('knowrizon-theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
 
   <body>

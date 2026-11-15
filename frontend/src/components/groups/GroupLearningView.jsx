@@ -4,6 +4,7 @@ import { GroupList } from './GroupList';
 import { GroupCreate } from './GroupCreate';
 import { GroupDetail } from './GroupDetail';
 import { GroupInvitations } from './GroupInvitations';
+import { Plus, Users, Loader2 } from 'lucide-react';
 import { API_BASE } from '../../lib/api';
 
 export function GroupLearningView() {
@@ -95,21 +96,26 @@ export function GroupLearningView() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <Loader2 className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="h-full flex">
-      <div className={`w-80 border-r border-gray-200 dark:border-gray-700 flex flex-col ${selectedGroup ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="h-full flex bg-[#FAF9F6] dark:bg-[#0F1115] text-[#141413] dark:text-[#F3F4F6] overflow-hidden">
+      <div className={`w-80 border-r border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#13161D] flex flex-col ${selectedGroup ? 'hidden md:flex' : 'flex'}`}>
+        <div className="p-4 border-b border-slate-200 dark:border-white/[0.08]">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Study Groups</h2>
-            <button onClick={() => setShowCreate(true)} className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Study Groups</h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Collaborative study cohorts</p>
+            </div>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors cursor-pointer"
+              title="Create Study Group"
+            >
+              <Plus className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -120,18 +126,19 @@ export function GroupLearningView() {
             onDecline={handleDeclineInvitation} 
           />
         )}
-        <GroupList groups={groups} selectedId={selectedGroup?.id} onSelect={handleGroupSelect} />
+        <div className="flex-1 overflow-y-auto">
+          <GroupList groups={groups} selectedId={selectedGroup?.id} onSelect={handleGroupSelect} />
+        </div>
       </div>
-      <div className={`flex-1 ${!selectedGroup ? 'hidden md:flex' : 'flex'} flex-col`}>
+      <div className={`flex-1 ${!selectedGroup ? 'hidden md:flex' : 'flex'} flex-col bg-[#FAF9F6] dark:bg-[#0F1115]`}>
         {selectedGroup ? (
           <GroupDetail group={selectedGroup} onBack={handleBack} onUpdate={fetchGroups} />
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
-            <div className="text-center">
-              <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <p>Select a group to start learning together</p>
+          <div className="flex-1 flex items-center justify-center text-slate-400 dark:text-slate-500">
+            <div className="text-center p-8 space-y-2">
+              <Users className="w-12 h-12 mx-auto opacity-30 text-slate-400 dark:text-slate-500" />
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">No group selected</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Select a study group from the list or create a new one to begin.</p>
             </div>
           </div>
         )}
@@ -140,3 +147,5 @@ export function GroupLearningView() {
     </div>
   );
 }
+
+export default GroupLearningView;

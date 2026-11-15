@@ -70,13 +70,21 @@ export function AuthProvider({ children }) {
             setToken(storedToken);
             setUser(JSON.parse(storedUser));
             setIsAnonymous(storedIsAnonymous === 'true');
-          } else {
+          } else if (response.status === 401 || response.status === 403) {
             console.log('Session expired or invalid, clearing...');
             clearAllStorages();
+          } else {
+            // Transient 500 / ECONNREFUSED / proxy error — retain cached session rather than logging out
+            console.warn(`Auth validation returned status ${response.status}, retaining cached session.`);
+            setToken(storedToken);
+            setUser(JSON.parse(storedUser));
+            setIsAnonymous(storedIsAnonymous === 'true');
           }
         } catch (err) {
-          console.warn('Could not validate session:', err);
-          clearAllStorages();
+          console.warn('Network error validating session, retaining cached session:', err);
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+          setIsAnonymous(storedIsAnonymous === 'true');
         }
       }
       setIsLoading(false);
@@ -120,13 +128,20 @@ export function AuthProvider({ children }) {
     setIsAnonymous(false);
   }, []);
 
-  const register = async (email, password, name) => {
+  const register = async (email, password, name, school = '', course = '', yearLevel = '1st') => {
     setError(null);
     try {
       const response = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name })
+        body: JSON.stringify({
+          email,
+          password,
+          name,
+          school,
+          course,
+          year_level: yearLevel
+        })
       });
 
       const data = await response.json();

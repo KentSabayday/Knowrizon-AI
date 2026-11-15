@@ -1,93 +1,141 @@
 /* ================================================================
-   Knowrizon Landing — Custom Animations & Design System
-   Brand: #22C7FF | #5B5FFF | #0B1220
+   Knowrizon Landing — Custom Animations & Craft Design System
+   Warm editorial design: #2563EB | #0891B2 | #FAF9F6 | #0F1115
    ================================================================ */
 
-/* === Background Constellation Blobs === */
+/* === Background Constellation Blobs (Softened Ambient) === */
 @keyframes kn-blob-1 {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.1); }
-  66% { transform: translate(-20px, 20px) scale(0.9); }
+  33% { transform: translate(25px, -35px) scale(1.05); }
+  66% { transform: translate(-15px, 15px) scale(0.95); }
 }
 @keyframes kn-blob-2 {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-40px, 30px) scale(1.15); }
-  66% { transform: translate(25px, -40px) scale(0.85); }
+  33% { transform: translate(-30px, 20px) scale(1.08); }
+  66% { transform: translate(20px, -25px) scale(0.92); }
 }
 @keyframes kn-blob-3 {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(20px, 40px) scale(0.95); }
-  66% { transform: translate(-30px, -20px) scale(1.1); }
+  33% { transform: translate(15px, 25px) scale(0.98); }
+  66% { transform: translate(-20px, -15px) scale(1.04); }
 }
 
-.kn-blob-1 { animation: kn-blob-1 20s ease-in-out infinite; will-change: transform; }
-.kn-blob-2 { animation: kn-blob-2 25s ease-in-out infinite; will-change: transform; }
-.kn-blob-3 { animation: kn-blob-3 22s ease-in-out infinite; will-change: transform; }
+.kn-blob-1 { animation: kn-blob-1 25s ease-in-out infinite; will-change: transform; opacity: 0.03; }
+.kn-blob-2 { animation: kn-blob-2 30s ease-in-out infinite; will-change: transform; opacity: 0.025; }
+.kn-blob-3 { animation: kn-blob-3 28s ease-in-out infinite; will-change: transform; opacity: 0.02; }
 
 /* === Floating Icon Hover === */
 @keyframes kn-float-icon {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  50% { transform: translateY(-6px); }
 }
-.kn-float-icon { animation: kn-float-icon 3.5s ease-in-out infinite; }
+.kn-float-icon { animation: kn-float-icon 4s ease-in-out infinite; }
 
 /* === Typing Indicator Dots === */
 @keyframes kn-typing-dot {
   0%, 100% { opacity: 0.3; transform: translateY(0); }
-  50% { opacity: 1; transform: translateY(-4px); }
+  50% { opacity: 1; transform: translateY(-3px); }
 }
 .kn-typing-dot { animation: kn-typing-dot 1.2s ease-in-out infinite; }
 
 /* === Glow Pulse (Hero backdrop) === */
 @keyframes kn-glow-pulse {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 0.65; transform: scale(1.06); }
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(1.03); }
 }
-.kn-glow-pulse { animation: kn-glow-pulse 4s ease-in-out infinite; }
+.kn-glow-pulse { animation: kn-glow-pulse 5s ease-in-out infinite; }
 
-/* === Gradient Text === */
+/* === Refined Editorial Gradient Text === */
 .kn-gradient-text {
-  background: linear-gradient(135deg, #22C7FF, #5B5FFF);
+  background: linear-gradient(135deg, #1E293B 10%, #2563EB 90%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+html.dark .kn-gradient-text,
+:root.dark .kn-gradient-text {
+  background: linear-gradient(135deg, #FFFFFF 15%, #60A5FA 90%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* === Gradient Button === */
-.kn-gradient-btn {
-  background: linear-gradient(135deg, #22C7FF, #5B5FFF);
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+/* === Tactile Craft Primary Button === */
+.kn-gradient-btn,
+.kn-btn-craft {
+  background-color: #2563EB;
+  color: #FFFFFF;
+  font-weight: 500;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 6px rgba(37, 99, 235, 0.2);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.kn-gradient-btn:hover {
-  box-shadow: 0 4px 25px rgba(34, 199, 255, 0.3);
+.kn-gradient-btn:hover,
+.kn-btn-craft:hover {
+  background-color: #1D4ED8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 14px rgba(37, 99, 235, 0.3);
   transform: translateY(-1px);
 }
-.kn-gradient-btn:active {
-  transform: translateY(0) scale(0.98);
+.kn-gradient-btn:active,
+.kn-btn-craft:active {
+  transform: translateY(0);
+  background-color: #1E40AF;
 }
 
-/* === Glass Card === */
+html.dark .kn-gradient-btn,
+html.dark .kn-btn-craft,
+:root.dark .kn-gradient-btn,
+:root.dark .kn-btn-craft {
+  background-color: #3B82F6;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+html.dark .kn-gradient-btn:hover,
+html.dark .kn-btn-craft:hover,
+:root.dark .kn-gradient-btn:hover,
+:root.dark .kn-btn-craft:hover {
+  background-color: #2563EB;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 14px rgba(59, 130, 246, 0.35);
+}
+
+/* === Glass Card (Tactile Warm Paper / Carbon Slate) === */
 .kn-glass {
-  background: rgba(17, 24, 39, 0.5);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(230, 228, 221, 0.85);
+  box-shadow: 0 4px 16px -2px rgba(20, 20, 19, 0.04);
 }
 
 .kn-glass-hover {
-  transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .kn-glass-hover:hover {
-  background: rgba(17, 24, 39, 0.65);
-  border-color: rgba(34, 199, 255, 0.15);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(34, 199, 255, 0.05);
+  background: rgba(255, 255, 255, 0.98);
+  border-color: #CBD5E1;
+  box-shadow: 0 8px 24px -4px rgba(20, 20, 19, 0.08);
   transform: translateY(-2px);
 }
 
+/* Dark Mode override */
+html.dark .kn-glass,
+:root.dark .kn-glass {
+  background: rgba(28, 32, 41, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.3);
+}
+
+html.dark .kn-glass-hover:hover,
+:root.dark .kn-glass-hover:hover {
+  background: rgba(28, 32, 41, 0.85);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.45);
+}
+
 /* === Scrollbar Styling === */
-.kn-scrollbar::-webkit-scrollbar { width: 4px; }
+.kn-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
 .kn-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.kn-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+.kn-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 4px; }
+html.dark .kn-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); }
 
 /* === Reduced Motion === */
 @media (prefers-reduced-motion: reduce) {

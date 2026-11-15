@@ -14,7 +14,7 @@ import { Footer } from './Footer';
 
 export function LandingView({ onGetStarted, onSignIn }) {
   return (
-    <div className="min-h-screen bg-[#0B1220] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#FAF9F6] text-[#141413] dark:bg-[#0F1115] dark:text-[#F3F4F6] overflow-x-hidden transition-colors duration-200">
       <AnimatedBackground />
       <Navbar onGetStarted={onGetStarted} onSignIn={onSignIn} />
 

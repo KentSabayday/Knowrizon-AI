@@ -1,6 +1,13 @@
 """Entry point for running the Flask development server with SocketIO."""
-import eventlet
-eventlet.monkey_patch()
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Robustly load .env from backend/.env and project root .env
+_backend_dir = Path(__file__).resolve().parent
+load_dotenv(dotenv_path=_backend_dir / '.env')
+load_dotenv(dotenv_path=_backend_dir.parent / '.env')
+load_dotenv()
 
 from app import create_app
 
@@ -10,5 +17,4 @@ app = create_app()
 from app import socketio
 
 if __name__ == '__main__':
-    # Use socketio.run() with use_reloader=False to avoid eventlet issues
     socketio.run(app, debug=True, port=5000, host='127.0.0.1', use_reloader=False)

@@ -27,7 +27,7 @@ def get_progress():
     """
     user_id = g.current_user.id
     
-    # Use the new database-backed get_progress method
+    # Use the database-backed get_progress method
     progress = progress_service.get_progress(user_id)
     
     # Categorize topics for frontend display
@@ -99,12 +99,8 @@ def get_topics_mastered():
         - 401: Unauthorized
     """
     user_id = g.current_user.id
-    
     topics = progress_service.get_topics_mastered(user_id)
-    
-    return jsonify({
-        'topics': topics
-    }), 200
+    return jsonify({'topics': topics}), 200
 
 
 @progress_bp.route('/topics/needs-work', methods=['GET'])
@@ -119,9 +115,45 @@ def get_topics_needing_work():
         - 401: Unauthorized
     """
     user_id = g.current_user.id
-    
     topics = progress_service.get_topics_needing_work(user_id)
-    
-    return jsonify({
-        'topics': topics
-    }), 200
+    return jsonify({'topics': topics}), 200
+
+
+@progress_bp.route('/learning-profile', methods=['GET'])
+@require_auth
+@db_error_handler
+def get_learning_profile():
+    """Get cognitive mastery profile, retrieval efficiency, and academic references."""
+    user_id = g.current_user.id
+    profile = progress_service.get_learning_profile(user_id)
+    return jsonify(profile), 200
+
+
+@progress_bp.route('/mistakes', methods=['GET'])
+@require_auth
+@db_error_handler
+def get_mistake_patterns():
+    """Get tracked mistakes, repeated error concepts, and Socratic remediation hints."""
+    user_id = g.current_user.id
+    mistakes = progress_service.get_mistake_patterns(user_id)
+    return jsonify(mistakes), 200
+
+
+@progress_bp.route('/recommendations', methods=['GET'])
+@require_auth
+@db_error_handler
+def get_recommendations():
+    """Get AI-curated Socratic study and retrieval recommendations."""
+    user_id = g.current_user.id
+    recommendations = progress_service.get_recommendations(user_id)
+    return jsonify({'recommendations': recommendations}), 200
+
+
+@progress_bp.route('/mastery', methods=['GET'])
+@require_auth
+@db_error_handler
+def get_mastery_dashboard():
+    """Get unified mastery dashboard for embedded AI Tutor analytics panel."""
+    user_id = g.current_user.id
+    dashboard = progress_service.get_mastery_dashboard(user_id)
+    return jsonify(dashboard), 200

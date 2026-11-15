@@ -5,6 +5,19 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+# Nebius API key resolution: strictly from environment or .env configuration
+def _resolve_api_key() -> str:
+    """Resolve Nebius API key from environment or local .env files."""
+    key = os.environ.get("NEBIUS_API_KEY")
+    if not key:
+        from dotenv import load_dotenv
+        backend_dir = Path(__file__).resolve().parent.parent.parent
+        load_dotenv(dotenv_path=backend_dir / '.env')
+        load_dotenv(dotenv_path=backend_dir.parent / '.env')
+        load_dotenv()
+        key = os.environ.get("NEBIUS_API_KEY", "")
+    return (key or "").strip()
+
 
 @dataclass
 class ModelConfig:
@@ -49,34 +62,34 @@ class ModelConfig:
 class NebiusConfig:
     """Configuration for Nebius AI integration."""
     api_key: Optional[str]
-    base_url: str = "https://api.studio.nebius.com/v1/"
+    base_url: str = "https://api.tokenfactory.eu-north1.nebius.com/v1/"
     tutor_model: ModelConfig = field(default_factory=lambda: ModelConfig(
         model_id="openai/gpt-oss-120b",
         temperature=0.7,
         max_tokens=2048,
-        fallback_model_id="deepseek-ai/DeepSeek-V3"
+        fallback_model_id="openai/gpt-oss-120b"
     ))
     quiz_model: ModelConfig = field(default_factory=lambda: ModelConfig(
         model_id="openai/gpt-oss-120b",
         temperature=0.3,
-        max_tokens=4096,
-        fallback_model_id="deepseek-ai/DeepSeek-V3"
+        max_tokens=8192,
+        fallback_model_id="openai/gpt-oss-120b"
     ))
     content_model: ModelConfig = field(default_factory=lambda: ModelConfig(
         model_id="openai/gpt-oss-120b",
         temperature=0.5,
         max_tokens=4096,
-        fallback_model_id="deepseek-ai/DeepSeek-V3"
+        fallback_model_id="openai/gpt-oss-120b"
     ))
     vision_model: ModelConfig = field(default_factory=lambda: ModelConfig(
-        model_id="google/gemma-3-27b-it-fast",
+        model_id="nvidia/Nemotron-3.5-Super-VL",
         temperature=0.5,
         max_tokens=2048,
-        fallback_model_id="google/gemma-3-27b-it"
+        fallback_model_id="nvidia/Nemotron-3.5-Super-VL"
     ))
     embedding_model: ModelConfig = field(default_factory=lambda: ModelConfig(
-        model_id="intfloat/e5-mistral-7b-instruct",
-        fallback_model_id="BAAI/bge-en-icl"
+        model_id="openai/gpt-oss-120b",
+        fallback_model_id="openai/gpt-oss-120b"
     ))
     retry_attempts: int = 3
     retry_delay: float = 1.0
@@ -85,19 +98,7 @@ class NebiusConfig:
     
     @classmethod
     def from_file(cls, path: str) -> "NebiusConfig":
-        """
-        Load configuration from JSON file.
-        
-        Args:
-            path: Path to the JSON configuration file.
-            
-        Returns:
-            NebiusConfig instance with loaded settings.
-            
-        Raises:
-            FileNotFoundError: If the config file doesn't exist.
-            json.JSONDecodeError: If the file contains invalid JSON.
-        """
+        """Load configuration from JSON file."""
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
@@ -105,12 +106,13 @@ class NebiusConfig:
         models_data = nebius_data.get("models", {})
         retry_data = nebius_data.get("retry", {})
         
-        # Load API key from environment variable
-        api_key = os.environ.get("NEBIUS_API_KEY")
+        api_key = _resolve_api_key()
+        
+        base_url = os.environ.get("NEBIUS_BASE_URL") or nebius_data.get("base_url", "https://api.tokenfactory.eu-north1.nebius.com/v1/")
         
         return cls(
             api_key=api_key,
-            base_url=nebius_data.get("base_url", "https://api.studio.nebius.com/v1/"),
+            base_url=base_url,
             tutor_model=ModelConfig.from_dict(models_data.get("tutor", {})) if models_data.get("tutor") else cls._default_tutor_model(),
             quiz_model=ModelConfig.from_dict(models_data.get("quiz", {})) if models_data.get("quiz") else cls._default_quiz_model(),
             content_model=ModelConfig.from_dict(models_data.get("content", {})) if models_data.get("content") else cls._default_content_model(),
@@ -124,18 +126,13 @@ class NebiusConfig:
     
     @classmethod
     def default(cls) -> "NebiusConfig":
-        """
-        Create default configuration.
-        
-        Loads API key from NEBIUS_API_KEY environment variable.
-        
-        Returns:
-            NebiusConfig instance with default settings.
-        """
-        api_key = os.environ.get("NEBIUS_API_KEY")
+        """Create default configuration."""
+        api_key = _resolve_api_key()
+        base_url = os.environ.get("NEBIUS_BASE_URL", "https://api.tokenfactory.eu-north1.nebius.com/v1/")
         
         return cls(
             api_key=api_key,
+            base_url=base_url,
             tutor_model=cls._default_tutor_model(),
             quiz_model=cls._default_quiz_model(),
             content_model=cls._default_content_model(),
@@ -149,7 +146,7 @@ class NebiusConfig:
             model_id="openai/gpt-oss-120b",
             temperature=0.7,
             max_tokens=2048,
-            fallback_model_id="deepseek-ai/DeepSeek-V3"
+            fallback_model_id="openai/gpt-oss-120b"
         )
     
     @staticmethod
@@ -157,8 +154,8 @@ class NebiusConfig:
         return ModelConfig(
             model_id="openai/gpt-oss-120b",
             temperature=0.3,
-            max_tokens=4096,
-            fallback_model_id="deepseek-ai/DeepSeek-V3"
+            max_tokens=8192,
+            fallback_model_id="openai/gpt-oss-120b"
         )
     
     @staticmethod
@@ -167,23 +164,23 @@ class NebiusConfig:
             model_id="openai/gpt-oss-120b",
             temperature=0.5,
             max_tokens=4096,
-            fallback_model_id="deepseek-ai/DeepSeek-V3"
+            fallback_model_id="openai/gpt-oss-120b"
         )
     
     @staticmethod
     def _default_vision_model() -> ModelConfig:
         return ModelConfig(
-            model_id="google/gemma-3-27b-it-fast",
+            model_id="nvidia/Nemotron-3.5-Super-VL",
             temperature=0.5,
             max_tokens=2048,
-            fallback_model_id="google/gemma-3-27b-it"
+            fallback_model_id="nvidia/Nemotron-3.5-Super-VL"
         )
     
     @staticmethod
     def _default_embedding_model() -> ModelConfig:
         return ModelConfig(
-            model_id="intfloat/e5-mistral-7b-instruct",
-            fallback_model_id="BAAI/bge-en-icl"
+            model_id="openai/gpt-oss-120b",
+            fallback_model_id="openai/gpt-oss-120b"
         )
     
     def has_api_key(self) -> bool:

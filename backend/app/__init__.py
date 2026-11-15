@@ -1,10 +1,14 @@
 import os
 import logging
+from pathlib import Path
 from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables robustly from backend/.env and project root .env
+_backend_dir = Path(__file__).resolve().parent.parent
+load_dotenv(dotenv_path=_backend_dir / '.env')
+load_dotenv(dotenv_path=_backend_dir.parent / '.env')
 load_dotenv()
 
 # Configure logging

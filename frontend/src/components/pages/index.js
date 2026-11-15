@@ -1,5 +1,11 @@
 export { LandingPage } from './LandingPage';
 export { DashboardView } from './DashboardView';
+export { StudentStudyDashboard } from './StudentStudyDashboard';
+export { InstructorDashboardView } from './InstructorDashboardView';
+export { StudentClassroomsView } from './StudentClassroomsView';
+export { StudentGradesView } from './StudentGradesView';
+export { StudentScheduleView } from './StudentScheduleView';
 export { LessonsView } from './LessonsView';
 export { PracticeView } from './PracticeView';
+export { HistoryView } from './HistoryView';
 export { SettingsView } from './SettingsView';

@@ -20,21 +20,20 @@ export function AnimatedBackground() {
 
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">
-      {/* Deep navy base */}
-      <div className="absolute inset-0 bg-[#0B1220]" />
+      {/* Dynamic base surface */}
+      <div className="absolute inset-0 bg-[#FAF9F6] dark:bg-[#0F1115] transition-colors duration-200" />
 
-      {/* Aurora gradient mesh — signature Knowrizon identity */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute -top-[20%] -left-[10%] w-[55%] h-[55%] rounded-full bg-[#22C7FF]/20 blur-[120px] kn-blob-1" />
-        <div className="absolute top-[30%] -right-[10%] w-[50%] h-[50%] rounded-full bg-[#5B5FFF]/15 blur-[120px] kn-blob-2" />
-        <div className="absolute -bottom-[10%] left-[20%] w-[45%] h-[45%] rounded-full bg-[#22C7FF]/8 blur-[120px] kn-blob-3" />
+      {/* Subtle ambient mesh */}
+      <div className="absolute inset-0 opacity-10 dark:opacity-15 transition-opacity duration-300">
+        <div className="absolute -top-[20%] -left-[10%] w-[55%] h-[55%] rounded-full bg-blue-500/10 blur-[140px] kn-blob-1" />
+        <div className="absolute top-[30%] -right-[10%] w-[50%] h-[50%] rounded-full bg-indigo-500/8 blur-[140px] kn-blob-2" />
+        <div className="absolute -bottom-[10%] left-[20%] w-[45%] h-[45%] rounded-full bg-blue-600/5 blur-[140px] kn-blob-3" />
       </div>
 
       {/* Subtle dot grid pattern — knowledge constellation feel */}
       <div
-        className="absolute inset-0 opacity-[0.35]"
+        className="absolute inset-0 opacity-40 dark:opacity-[0.35] [background-image:radial-gradient(circle,rgba(15,23,42,0.06)_1px,transparent_1px)] dark:[background-image:radial-gradient(circle,rgba(255,255,255,0.04)_1px,transparent_1px)] transition-all duration-300"
         style={{
-          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)',
           backgroundSize: '32px 32px',
         }}
       />
@@ -45,7 +44,7 @@ export function AnimatedBackground() {
           ref={glowRef}
           className="fixed w-[600px] h-[600px] rounded-full pointer-events-none will-change-transform"
           style={{
-            background: 'radial-gradient(circle, rgba(34,199,255,0.06) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(37,99,235,0.04) 0%, transparent 70%)',
             transform: 'translate(-300px, -300px)',
           }}
         />

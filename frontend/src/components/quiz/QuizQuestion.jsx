@@ -59,7 +59,7 @@ export function QuizQuestion({
   if (!question) return null;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5">
+    <div className="w-full max-w-5xl mx-auto space-y-5">
       {/* Progress bar */}
       <div className="relative">
         <div className="w-full bg-slate-800 rounded-full h-1.5" role="progressbar" aria-valuenow={questionIndex + 1} aria-valuemax={totalQuestions}>
@@ -106,7 +106,7 @@ export function QuizQuestion({
       >
         {/* Flag button */}
         <div className="flex items-start justify-between gap-3 mb-4">
-          <p className="text-lg text-slate-100 font-medium leading-relaxed flex-1">
+          <p className="text-xl sm:text-2xl text-slate-100 font-semibold leading-relaxed flex-1">
             {question.question}
           </p>
           <button

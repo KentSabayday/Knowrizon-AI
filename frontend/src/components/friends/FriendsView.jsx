@@ -6,6 +6,7 @@ import { useCall } from '../../context/CallContext';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui';
 import { Badge } from '../ui/Badge';
 import { FriendsList } from './FriendsList';
+import { SubjectClassmatesList } from './SubjectClassmatesList';
 import { FriendSearch } from './FriendSearch';
 import { FriendRequests } from './FriendRequests';
 import { DirectChatView } from '../chat/DirectChatView';
@@ -27,9 +28,7 @@ export function FriendsView() {
   };
   
   const handleVoiceCall = async (friend) => {
-    // Initialize audio on user interaction
     await audioService.init();
-    
     const chat = await getOrCreateChat(friend.id);
     if (chat) {
       await initiateCall('voice', 'direct', chat.id);
@@ -37,9 +36,7 @@ export function FriendsView() {
   };
   
   const handleVideoCall = async (friend) => {
-    // Initialize audio on user interaction
     await audioService.init();
-    
     const chat = await getOrCreateChat(friend.id);
     if (chat) {
       await initiateCall('video', 'direct', chat.id);
@@ -62,28 +59,28 @@ export function FriendsView() {
   }
   
   return (
-    <div className="h-full flex flex-col p-6">
+    <div className="h-full flex flex-col p-6 max-w-5xl mx-auto w-full text-slate-900 dark:text-slate-100">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Friends
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          Classmates
         </h1>
-        <p className="text-gray-500 dark:text-gray-400">
-          Connect and learn together
+        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+          Connect with study partners, share notes, and collaborate in real time.
         </p>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="mb-4">
-          <TabsTrigger value="friends" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Friends
+        <TabsList className="mb-4 bg-slate-100 dark:bg-white/[0.04] p-1 rounded-xl border border-slate-200 dark:border-white/[0.08]">
+          <TabsTrigger value="friends" className="flex items-center gap-2 text-xs font-semibold">
+            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            Classmates
           </TabsTrigger>
-          <TabsTrigger value="search" className="flex items-center gap-2">
-            <UserPlus className="w-4 h-4" />
-            Add Friends
+          <TabsTrigger value="search" className="flex items-center gap-2 text-xs font-semibold">
+            <UserPlus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            Find Classmates
           </TabsTrigger>
-          <TabsTrigger value="requests" className="flex items-center gap-2">
-            <Bell className="w-4 h-4" />
+          <TabsTrigger value="requests" className="flex items-center gap-2 text-xs font-semibold">
+            <Bell className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             Requests
             <Badge count={pendingCount} />
           </TabsTrigger>
@@ -91,7 +88,7 @@ export function FriendsView() {
         
         <div className="flex-1 overflow-auto">
           <TabsContent value="friends" className="h-full">
-            <FriendsList 
+            <SubjectClassmatesList
               onChat={handleChat}
               onVoiceCall={handleVoiceCall}
               onVideoCall={handleVideoCall}
@@ -110,3 +107,5 @@ export function FriendsView() {
     </div>
   );
 }
+
+export default FriendsView;

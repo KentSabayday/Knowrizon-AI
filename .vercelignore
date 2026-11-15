@@ -1,0 +1,9 @@
+Procfile
+Procfile.bak
+backend/data/*.db
+backend/uploads/**
+.pytest_cache
+.hypothesis
+ui/*.png
+ui/*.jpg
+

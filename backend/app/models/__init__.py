@@ -17,6 +17,18 @@ from app.models.agent_prompt import AgentPrompt
 from app.models.progress import UserProgress, TopicProgress, ProgressEntry
 from app.models.conversation import Conversation, Message
 
+# Academic Ecosystem Models
+from app.models.academic import (
+    AcademicYear,
+    Department,
+    ClassSubject,
+    ClassSchedule,
+    ClassEnrollment,
+    LearningMaterial,
+    AcademicQuiz,
+    AcademicQuizAssignment
+)
+
 # Friends & Communication models
 from app.models.friend import Friend
 from app.models.friend_request import FriendRequest, RequestStatus
@@ -35,6 +47,15 @@ __all__ = [
     "QuizResult",
     "Conversation",
     "Message",
+    # Academic Ecosystem Models
+    "AcademicYear",
+    "Department",
+    "ClassSubject",
+    "ClassSchedule",
+    "ClassEnrollment",
+    "LearningMaterial",
+    "AcademicQuiz",
+    "AcademicQuizAssignment",
     # Friends & Communication Models
     "Friend",
     "FriendRequest",

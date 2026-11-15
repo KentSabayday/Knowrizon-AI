@@ -18,10 +18,10 @@ export function HowItWorks() {
     <section id="how-it-works" className="py-24 lg:py-32 px-6">
       <div className="max-w-3xl mx-auto">
         <ScrollReveal className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white mb-4 tracking-tight">
             How it <span className="kn-gradient-text">works</span>
           </h2>
-          <p className="text-lg text-[#94A3B8]">
+          <p className="text-lg text-slate-600 dark:text-[#94A3B8]">
             From upload to mastery in five simple steps.
           </p>
         </ScrollReveal>
@@ -33,7 +33,7 @@ export function HowItWorks() {
               initial={{ height: 0 }}
               animate={isInView ? { height: '100%' } : { height: 0 }}
               transition={{ duration: 2.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="w-full bg-gradient-to-b from-[#22C7FF] via-[#5B5FFF] to-[#22C7FF]/10"
+              className="w-full bg-gradient-to-b from-blue-600 via-indigo-600 to-blue-600/20"
             />
           </div>
 
@@ -43,14 +43,14 @@ export function HowItWorks() {
                 <div className="flex gap-5 md:gap-8">
                   {/* Number badge */}
                   <div className="relative flex-shrink-0 z-10">
-                    <div className="w-11 h-11 md:w-16 md:h-16 rounded-2xl bg-[#111827] border border-white/[0.08] flex items-center justify-center shadow-lg shadow-black/20">
-                      <span className="text-xs md:text-sm font-bold kn-gradient-text">{step.num}</span>
+                    <div className="w-11 h-11 md:w-16 md:h-16 rounded-2xl bg-white dark:bg-[#161920] border border-slate-200/90 dark:border-white/[0.08] flex items-center justify-center shadow-2xs">
+                      <span className="text-xs md:text-sm font-bold text-blue-600 dark:text-blue-400">{step.num}</span>
                     </div>
                   </div>
                   {/* Content */}
                   <div className="pt-0.5 md:pt-3 pb-2">
-                    <h3 className="text-lg md:text-xl font-semibold text-white mb-1.5">{step.title}</h3>
-                    <p className="text-[#94A3B8] text-sm md:text-base leading-relaxed">{step.description}</p>
+                    <h3 className="text-lg md:text-xl font-semibold text-slate-900 dark:text-white mb-1.5">{step.title}</h3>
+                    <p className="text-slate-600 dark:text-[#94A3B8] text-sm md:text-base leading-relaxed">{step.description}</p>
                   </div>
                 </div>
               </StaggerItem>

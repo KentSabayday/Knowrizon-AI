@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
-import { Button } from '../ui/button';
+import {
+  Sun, Moon, Check, Shield, User, LogOut, Loader2, Sparkles,
+  BookOpen, Bell, Laptop, Info
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -8,16 +10,16 @@ import { useTheme } from '../../context/ThemeContext';
  * SettingsView - User settings and preferences.
  * 
  * Features:
- * - Theme toggle
- * - Account information
- * - Logout functionality
- * 
- * Requirements: 3.4, 3.5, 10.3
+ * - Side-by-side visual Theme selector (Warm Paper vs. Carbon Slate)
+ * - Account information with role badges
+ * - Study preferences & Socratic guidance level
+ * - Tactile sign out button
  */
 export function SettingsView() {
   const { user, isAnonymous, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [socraticPacing, setSocraticPacing] = useState('guided');
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -28,149 +30,237 @@ export function SettingsView() {
     }
   };
 
+  const userRole = user?.role || (isAnonymous ? 'guest' : 'student');
+  const roleLabel = {
+    admin: 'Administrator',
+    instructor: 'Instructor',
+    student: 'Student',
+    guest: 'Anonymous Guest'
+  }[userRole] || 'Student';
+
   return (
-    <div className="p-6 overflow-auto h-full">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="p-6 lg:p-8 overflow-y-auto h-full text-slate-900 dark:text-slate-100">
+      <div className="max-w-3xl mx-auto space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage your preferences and account
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Settings & Preferences
+          </h1>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            Customize your learning environment, appearance, and account details.
           </p>
         </div>
 
-        {/* Appearance Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Appearance</CardTitle>
-            <CardDescription>Customize how Knowrizon looks</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-900 dark:text-white">Theme</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Switch between light and dark mode
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={toggleTheme}
-                className="gap-2"
-              >
-                {theme === 'dark' ? (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    Light Mode
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                    </svg>
-                    Dark Mode
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Account Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Account</CardTitle>
-            <CardDescription>Your account information</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isAnonymous ? (
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-400 mb-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <span className="font-medium">Anonymous Session</span>
-                </div>
-                <p className="text-sm text-yellow-600 dark:text-yellow-300">
-                  You're using Knowrizon anonymously. Your progress won't be saved after you leave.
-                  Create an account to save your learning history.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-gray-500 dark:text-gray-400">Name</span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {user?.name || 'Not set'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-gray-500 dark:text-gray-400">Email</span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {user?.email || 'Not set'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-gray-500 dark:text-gray-400">Account Type</span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    Registered User
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Logout Button */}
-            <div className="pt-4">
-              <Button
-                variant="outline"
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="w-full text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20"
-              >
-                {isLoggingOut ? (
-                  <>
-                    <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Logging out...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Log Out
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* About Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>About Knowrizon</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4 mb-4">
-              <img src="/logo.svg" alt="Knowrizon" className="w-12 h-12" />
-              <div>
-                <h3 className="font-bold text-gray-900 dark:text-white">Knowrizon</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Your Personal AI Tutor — Learn Smarter
-                </p>
-              </div>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Knowrizon uses AI-powered agents to help you learn more effectively.
-              Chat with your tutor, upload study materials, take quizzes, and track your progress.
+        {/* ── Appearance: Side-by-side Visual Theme Preview Cards ── */}
+        <div className="bg-white dark:bg-[#161920] border border-slate-200/90 dark:border-white/[0.08] rounded-2xl p-6 shadow-2xs space-y-4">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>Theme & Appearance</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Choose your preferred visual tone. Both themes are hand-crafted for high-contrast focus.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            {/* Light Mode Preview Card */}
+            <div
+              onClick={() => setTheme('light')}
+              className={`p-4 rounded-xl border text-left cursor-pointer transition-all select-none relative ${
+                theme === 'light'
+                  ? 'border-blue-600 ring-2 ring-blue-500/20 bg-blue-50/30'
+                  : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Sun className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-bold text-slate-900">Light Mode (Warm Paper)</span>
+                </div>
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                  theme === 'light' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300'
+                }`}>
+                  {theme === 'light' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                </div>
+              </div>
+
+              {/* Miniature Light Mockup */}
+              <div className="h-24 rounded-lg bg-[#FAF9F6] border border-slate-200 p-2.5 space-y-2 overflow-hidden shadow-2xs">
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-200">
+                  <div className="w-12 h-2 rounded bg-slate-800" />
+                  <div className="w-4 h-2 rounded bg-blue-600" />
+                </div>
+                <div className="p-2 rounded bg-white border border-slate-200 space-y-1 shadow-2xs">
+                  <div className="w-20 h-1.5 rounded bg-slate-700" />
+                  <div className="w-28 h-1 rounded bg-slate-300" />
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2">
+                Warm alabaster canvas with crisp dark slate typography.
+              </p>
+            </div>
+
+            {/* Dark Mode Preview Card */}
+            <div
+              onClick={() => setTheme('dark')}
+              className={`p-4 rounded-xl border text-left cursor-pointer transition-all select-none relative ${
+                theme === 'dark'
+                  ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-950/20'
+                  : 'border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.15] bg-slate-900/5 dark:bg-white/[0.02]'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Moon className="w-4 h-4 text-indigo-400" />
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">Dark Mode (Carbon Slate)</span>
+                </div>
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                  theme === 'dark' ? 'border-blue-500 bg-blue-500 text-white' : 'border-slate-300 dark:border-white/20'
+                }`}>
+                  {theme === 'dark' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                </div>
+              </div>
+
+              {/* Miniature Dark Mockup */}
+              <div className="h-24 rounded-lg bg-[#0F1115] border border-white/[0.1] p-2.5 space-y-2 overflow-hidden shadow-2xs">
+                <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.08]">
+                  <div className="w-12 h-2 rounded bg-white" />
+                  <div className="w-4 h-2 rounded bg-blue-500" />
+                </div>
+                <div className="p-2 rounded bg-[#161920] border border-white/[0.08] space-y-1">
+                  <div className="w-20 h-1.5 rounded bg-slate-200" />
+                  <div className="w-28 h-1 rounded bg-slate-600" />
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
+                Deep carbon canvas with balanced, low-fatigue slate contrast.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Account Details Card ── */}
+        <div className="bg-white dark:bg-[#161920] border border-slate-200/90 dark:border-white/[0.08] rounded-2xl p-6 shadow-2xs space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span>Account Profile</span>
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Your authenticated session and user permissions.
+              </p>
+            </div>
+
+            <span className="text-[11px] px-2.5 py-1 rounded-full font-semibold border bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40 capitalize">
+              {roleLabel}
+            </span>
+          </div>
+
+          {isAnonymous ? (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl space-y-2">
+              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-semibold text-xs">
+                <Info className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span>Anonymous Guest Session</span>
+              </div>
+              <p className="text-xs text-amber-700 dark:text-amber-200 leading-relaxed">
+                You're exploring Knowrizon as a temporary guest. Your study sessions, uploads, and quiz records won't persist across devices. Sign up for a free student account to save your learning streak.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 divide-y divide-slate-100 dark:divide-white/[0.06] text-xs">
+              <div className="flex items-center justify-between pt-1 pb-2">
+                <span className="text-slate-500 dark:text-slate-400">Full Name</span>
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {user?.name || 'Alex Student'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-slate-500 dark:text-slate-400">Email Address</span>
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {user?.email || 'student@example.com'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-slate-500 dark:text-slate-400">Account Role</span>
+                <span className="font-semibold text-slate-900 dark:text-white">
+                  {roleLabel}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Logout Action */}
+          <div className="pt-2">
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="w-full py-2.5 px-4 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-300 hover:bg-rose-100/60 dark:hover:bg-rose-950/40 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {isLoggingOut ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Signing out...</span>
+                </>
+              ) : (
+                <>
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* ── Learning Preferences ── */}
+        <div className="bg-white dark:bg-[#161920] border border-slate-200/90 dark:border-white/[0.08] rounded-2xl p-6 shadow-2xs space-y-4">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>Socratic Tutoring Style</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Control how Knowri structures hints, reflections, and concept breakdowns.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div
+              onClick={() => setSocraticPacing('guided')}
+              className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all ${
+                socraticPacing === 'guided'
+                  ? 'border-blue-600 bg-blue-50/40 dark:bg-blue-950/30 dark:border-blue-400'
+                  : 'border-slate-200 dark:border-white/[0.06] hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-slate-900 dark:text-white">Guided Socratic (Default)</span>
+                {socraticPacing === 'guided' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Asks guiding questions to help you arrive at the answer step-by-step.
+              </p>
+            </div>
+
+            <div
+              onClick={() => setSocraticPacing('direct')}
+              className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all ${
+                socraticPacing === 'direct'
+                  ? 'border-blue-600 bg-blue-50/40 dark:bg-blue-950/30 dark:border-blue-400'
+                  : 'border-slate-200 dark:border-white/[0.06] hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-slate-900 dark:text-white">Direct Explanations</span>
+                {socraticPacing === 'direct' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Provides direct answers first, followed by reflection and related sources.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

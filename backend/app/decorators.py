@@ -64,9 +64,13 @@ def require_auth(f):
                 'code': 'INVALID_TOKEN'
             }), 401
         
-        # Store the current user in Flask's g object for access in the route
+        # Store the current user in Flask's g object and request object for access in the route
         g.current_user = user
         g.auth_token = token
+        try:
+            request.current_user = user
+        except Exception:
+            pass
         
         return f(*args, **kwargs)
     
@@ -129,6 +133,10 @@ def optional_auth(f):
     def decorated_function(*args, **kwargs):
         g.current_user = None
         g.auth_token = None
+        try:
+            request.current_user = None
+        except Exception:
+            pass
         
         auth_header = request.headers.get('Authorization')
         
@@ -139,8 +147,142 @@ def optional_auth(f):
                 if user:
                     g.current_user = user
                     g.auth_token = token
+                    try:
+                        request.current_user = user
+                    except Exception:
+                        pass
         
         return f(*args, **kwargs)
     
     return decorated_function
 
+
+def require_admin(f):
+    """
+    Decorator to ensure the authenticated user possesses administrator privileges.
+    Returns 401 if not authenticated, or 403 Forbidden if not an administrator.
+    """
+    @wraps(f)
+    @require_auth
+    def decorated_function(*args, **kwargs):
+        current_user = getattr(g, 'current_user', None)
+        if not current_user:
+            return jsonify({
+                'error': 'Authentication required',
+                'code': 'AUTH_REQUIRED'
+            }), 401
+            
+        if not current_user.is_administrator:
+            return jsonify({
+                'error': 'Forbidden: Administrator privileges required to access this resource',
+                'code': 'ADMIN_REQUIRED'
+            }), 403
+            
+        return f(*args, **kwargs)
+        
+    return decorated_function
+
+
+def require_admin_or_dean(f):
+    """
+    Decorator allowing Administrators and Academic Deans.
+    Used for academic governance where Deans can appoint faculty and create students.
+    """
+    @wraps(f)
+    @require_auth
+    def decorated_function(*args, **kwargs):
+        current_user = getattr(g, 'current_user', None)
+        if not current_user:
+            return jsonify({
+                'error': 'Authentication required',
+                'code': 'AUTH_REQUIRED'
+            }), 401
+            
+        if not (current_user.is_administrator or getattr(current_user, 'is_dean', False) or current_user.role == 'dean'):
+            return jsonify({
+                'error': 'Forbidden: Administrator or Dean privileges required to perform this action',
+                'code': 'DEAN_OR_ADMIN_REQUIRED'
+            }), 403
+            
+        return f(*args, **kwargs)
+        
+    return decorated_function
+
+
+def require_role(*roles):
+    """
+    Parameterized decorator ensuring the authenticated user has one of the specified roles.
+    Admins always bypass role restrictions.
+    
+    Usage:
+        @app.route('/dean-only')
+        @require_role('dean', 'admin')
+        def dean_endpoint(): ...
+    """
+    allowed_roles = {r.lower().strip() for r in roles}
+
+    def decorator(f):
+        @wraps(f)
+        @require_auth
+        def decorated_function(*args, **kwargs):
+            current_user = getattr(g, 'current_user', None)
+            if not current_user:
+                return jsonify({'error': 'Authentication required'}), 401
+
+            user_role = (getattr(current_user, 'role', '') or '').lower().strip()
+            is_admin = getattr(current_user, 'is_administrator', False) or user_role == 'admin'
+
+            if is_admin or user_role in allowed_roles:
+                return f(*args, **kwargs)
+
+            return jsonify({
+                'error': f"Forbidden: Insufficient privileges. Required role: {', '.join(allowed_roles)}"
+            }), 403
+
+        return decorated_function
+
+    return decorator
+
+
+def require_media_auth(f):
+    """
+    Dedicated decorator for streaming media / file downloads (PDF, images, video)
+    where HTML elements (<iframe>, <video>, <img>, <a>) cannot set custom Authorization headers.
+    Accepts Bearer header OR ?token= query parameter.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = None
+
+        # 1. Primary: Authorization header
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+
+        # 2. Media fallback: query parameter
+        if not token:
+            token = request.args.get('token')
+
+        if not token:
+            return jsonify({
+                'error': 'Authorization required',
+                'code': 'MISSING_MEDIA_TOKEN'
+            }), 401
+
+        user = auth_service.validate_token(token)
+        if not user:
+            return jsonify({
+                'error': 'Session expired or invalid token',
+                'code': 'INVALID_MEDIA_TOKEN'
+            }), 401
+
+        g.current_user = user
+        g.auth_token = token
+        try:
+            request.current_user = user
+        except Exception:
+            pass
+
+        return f(*args, **kwargs)
+
+    return decorated_function

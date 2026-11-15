@@ -2,19 +2,19 @@
 QuizData model for database persistence of generated quizzes.
 
 On Vercel serverless, in-memory quiz storage is lost between invocations.
-This model persists the full quiz (including correct answers and explanations)
-in the database so that quiz submission works across separate requests.
+This model persists the full quiz (including correct answers, question types,
+socratic feedback, and explanations) in the database.
 """
 import uuid
 import json
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from app.database import db
 
 
 class QuizData(db.Model):
-    """Persisted quiz data including questions, correct answers, and explanations."""
+    """Persisted quiz data including questions, question types, correct answers, and explanations."""
     
     __tablename__ = 'quiz_data'
     
@@ -22,31 +22,25 @@ class QuizData(db.Model):
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     topic = db.Column(db.String(500), nullable=True)
     content_id = db.Column(db.String(36), nullable=True)
+    conversation_id = db.Column(db.Integer, nullable=True)
     questions_json = db.Column(db.Text, nullable=False)  # Full quiz data as JSON
     is_submitted = db.Column(db.Boolean, default=False)
+    is_archived = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
         return f'<QuizData {self.id}: topic={self.topic}, submitted={self.is_submitted}>'
     
     def get_stored_data(self) -> dict:
-        """
-        Get the full stored data structure.
-        Handles both old format (plain list) and new format (metadata wrapper).
-        """
+        """Get the full stored data structure."""
         if not self.questions_json:
             return {'questions': []}
         
         parsed = json.loads(self.questions_json)
-        
-        # New format: dict with 'questions' key and metadata
         if isinstance(parsed, dict) and 'questions' in parsed:
             return parsed
-        
-        # Old format: plain list of questions
         if isinstance(parsed, list):
             return {'questions': parsed}
-        
         return {'questions': []}
     
     @property
@@ -59,39 +53,31 @@ class QuizData(db.Model):
         """Set questions from a list of dictionaries."""
         self.questions_json = json.dumps(value) if value else '[]'
     
-    def get_question_count(self) -> int:
-        """Get the number of questions."""
-        return len(self.questions)
-    
     def get_source_mode(self) -> str:
-        """Get the source mode used for this quiz."""
         return self.get_stored_data().get('sourceMode', 'topic_based')
     
     def get_content_meta(self) -> Optional[dict]:
-        """Get content metadata if available."""
         return self.get_stored_data().get('contentMeta')
     
     def get_parent_attempt_id(self) -> Optional[str]:
-        """Get parent attempt ID for retakes."""
         return self.get_stored_data().get('parentAttemptId')
     
     def to_client_dict(self) -> dict:
-        """Convert to dictionary for client (without correct answers)."""
+        """Convert to client-safe dictionary (WITHOUT correct answers)."""
         questions = self.questions
         client_questions = []
-        for q in questions:
+        
+        for i, q in enumerate(questions):
             client_q = {
-                'id': q.get('id', ''),
+                'id': q.get('id', f'q{i+1}'),
+                'type': q.get('type', 'multiple_choice'),
                 'question': q.get('question', ''),
                 'options': q.get('options', []),
+                'difficulty': q.get('difficulty', 'medium'),
+                'topic': q.get('topic', ''),
+                'conceptId': q.get('conceptId', ''),
+                'source': q.get('source'),
             }
-            # Include non-answer metadata that's safe for the client
-            if q.get('difficulty'):
-                client_q['difficulty'] = q['difficulty']
-            if q.get('topic'):
-                client_q['topic'] = q['topic']
-            if q.get('conceptId'):
-                client_q['conceptId'] = q['conceptId']
             client_questions.append(client_q)
         
         return {
@@ -102,22 +88,30 @@ class QuizData(db.Model):
             'sourceMode': self.get_source_mode(),
             'contentMeta': self.get_content_meta(),
             'parentAttemptId': self.get_parent_attempt_id(),
+            'isArchived': self.is_archived,
             'createdAt': self.created_at.isoformat() if self.created_at else None,
         }
     
-    def grade(self, answers: List[int]) -> dict:
+    def get_review_data(self) -> dict:
+        """Get full review data with questions, options, correct answers, explanations, and sources."""
+        return {
+            'quizId': self.id,
+            'topic': self.topic,
+            'questions': self.questions,
+            'questionCount': len(self.questions),
+            'sourceMode': self.get_source_mode(),
+            'contentMeta': self.get_content_meta(),
+            'parentAttemptId': self.get_parent_attempt_id(),
+            'isArchived': self.is_archived,
+            'isSubmitted': self.is_submitted,
+            'createdAt': self.created_at.isoformat() if self.created_at else None,
+        }
+    
+    def grade(self, answers: List[Any]) -> dict:
         """
         Grade the quiz given user answers.
-        
-        All questions are scored regardless of validity status.
-        Returns full results including explanations and sources
-        for ALL questions (both correct and incorrect).
-        
-        Args:
-            answers: List of answer indices selected by the user.
-            
-        Returns:
-            Dictionary with score, correctCount, totalQuestions, and results.
+        Returns full results including explanations, why_incorrect,
+        socratic_followup, and sources for ALL questions.
         """
         questions = self.questions
         total = len(questions)
@@ -127,26 +121,61 @@ class QuizData(db.Model):
         for i, q in enumerate(questions):
             user_answer = answers[i] if i < len(answers) else -1
             correct_index = q.get('correct_index', 0)
-            is_correct = user_answer == correct_index
+            
+            # Handle both index comparisons and string matches
+            is_correct = False
+            if isinstance(user_answer, int) and user_answer >= 0:
+                is_correct = (user_answer == correct_index)
+            elif isinstance(user_answer, str) and user_answer.strip():
+                import re
+                clean_s = lambda s: re.sub(r'[\s\-_,\.\'\"()]+', ' ', str(s or '').lower()).strip()
+                user_clean = clean_s(user_answer)
+                expected_str = clean_s(q.get('correct_answer'))
+                options = q.get('options', [])
+                opt_cleans = [clean_s(opt) for opt in options] if options else []
+                if expected_str and user_clean == expected_str:
+                    is_correct = True
+                elif opt_cleans and 0 <= correct_index < len(opt_cleans) and user_clean == opt_cleans[correct_index]:
+                    is_correct = True
+                elif len(user_clean) >= 3:
+                    if expected_str and (user_clean in expected_str or expected_str in user_clean):
+                        is_correct = True
+                    elif opt_cleans and 0 <= correct_index < len(opt_cleans):
+                        if user_clean in opt_cleans[correct_index] or opt_cleans[correct_index] in user_clean:
+                            is_correct = True
+                if not is_correct: pass
+                user_clean = user_answer.strip().lower()
+                expected_str = str(q.get('correct_answer') or '').strip().lower()
+                options = q.get('options', [])
+                if not expected_str and options and 0 <= correct_index < len(options):
+                    expected_str = str(options[correct_index]).strip().lower()
+                is_correct = (user_clean == expected_str)
+                if not is_correct and options and 0 <= correct_index < len(options):
+                    is_correct = (user_clean == str(options[correct_index]).strip().lower())
             
             if is_correct:
                 correct += 1
             
             result_item = {
                 'questionId': q.get('id', f'q{i+1}'),
+                'type': q.get('type', 'multiple_choice'),
                 'question': q.get('question', ''),
                 'userAnswer': user_answer,
                 'correctAnswer': correct_index,
+                'correctAnswerText': q.get('correct_answer') or (q.get('options', [])[correct_index] if q.get('options') and 0 <= correct_index < len(q.get('options')) else ''),
                 'isCorrect': is_correct,
                 'options': q.get('options', []),
                 'explanation': q.get('explanation', ''),
+                'why_incorrect': q.get('why_incorrect', ''),
+                'socratic_followup': q.get('socratic_followup', 'What clues in the text point to the correct principle?'),
                 'learningExplanation': q.get('learningExplanation', ''),
                 'difficulty': q.get('difficulty', 'medium'),
                 'topic': q.get('topic', ''),
                 'conceptId': q.get('conceptId', ''),
+                'source': q.get('source'),
                 'sources': q.get('sources', []),
+                'validityScore': q.get('validityScore', 90)
             }
-            
             results.append(result_item)
         
         score = (correct / total) if total > 0 else 0.0
@@ -159,44 +188,4 @@ class QuizData(db.Model):
             'sourceMode': self.get_source_mode(),
             'contentMeta': self.get_content_meta(),
             'parentAttemptId': self.get_parent_attempt_id(),
-        }
-    
-    def get_review_data(self, answers: List[int] = None) -> dict:
-        """
-        Get full quiz data for review mode.
-        Includes correct answers, explanations, validity, and sources.
-        
-        Args:
-            answers: Optional list of user's answers to include in review.
-            
-        Returns:
-            Full quiz data dictionary with all metadata.
-        """
-        questions = self.questions
-        review_questions = []
-        
-        for i, q in enumerate(questions):
-            review_q = {
-                'id': q.get('id', f'q{i+1}'),
-                'question': q.get('question', ''),
-                'options': q.get('options', []),
-                'correctAnswer': q.get('correct_index', 0),
-                'explanation': q.get('explanation', ''),
-                'learningExplanation': q.get('learningExplanation', ''),
-                'difficulty': q.get('difficulty', 'medium'),
-                'topic': q.get('topic', ''),
-                'conceptId': q.get('conceptId', ''),
-                'sources': q.get('sources', []),
-            }
-            if answers and i < len(answers):
-                review_q['userAnswer'] = answers[i]
-                review_q['isCorrect'] = answers[i] == q.get('correct_index', 0)
-            review_questions.append(review_q)
-        
-        return {
-            'quizId': self.id,
-            'topic': self.topic,
-            'questions': review_questions,
-            'sourceMode': self.get_source_mode(),
-            'contentMeta': self.get_content_meta(),
         }
