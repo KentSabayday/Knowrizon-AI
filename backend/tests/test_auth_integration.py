@@ -39,7 +39,7 @@ class TestRegisterFlow:
     def test_register_success(self, client):
         """Test successful user registration."""
         response = client.post('/api/auth/register', json={
-            'email': 'test@example.com',
+            'email': 'test.student@urios.edu.ph',
             'password': 'password123',
             'name': 'Test User'
         })
@@ -48,7 +48,7 @@ class TestRegisterFlow:
         data = response.get_json()
         assert 'user' in data
         assert 'token' in data
-        assert data['user']['email'] == 'test@example.com'
+        assert data['user']['email'] == 'test.student@urios.edu.ph'
         assert data['user']['name'] == 'Test User'
         assert data['user']['is_anonymous'] == False
     
@@ -56,14 +56,14 @@ class TestRegisterFlow:
         """Test registration with duplicate email fails."""
         # First registration
         client.post('/api/auth/register', json={
-            'email': 'test@example.com',
+            'email': 'test.student@urios.edu.ph',
             'password': 'password123',
             'name': 'Test User'
         })
         
         # Second registration with same email
         response = client.post('/api/auth/register', json={
-            'email': 'test@example.com',
+            'email': 'test.student@urios.edu.ph',
             'password': 'password456',
             'name': 'Another User'
         })
@@ -75,7 +75,7 @@ class TestRegisterFlow:
     def test_register_missing_fields(self, client):
         """Test registration with missing fields fails."""
         response = client.post('/api/auth/register', json={
-            'email': 'test@example.com'
+            'email': 'test.student@urios.edu.ph'
         })
         
         assert response.status_code == 400
@@ -88,14 +88,14 @@ class TestLoginFlow:
         """Test successful login."""
         # Register first
         client.post('/api/auth/register', json={
-            'email': 'test@example.com',
+            'email': 'test.student@urios.edu.ph',
             'password': 'password123',
             'name': 'Test User'
         })
         
         # Login
         response = client.post('/api/auth/login', json={
-            'email': 'test@example.com',
+            'email': 'test.student@urios.edu.ph',
             'password': 'password123'
         })
         
@@ -103,20 +103,20 @@ class TestLoginFlow:
         data = response.get_json()
         assert 'user' in data
         assert 'token' in data
-        assert data['user']['email'] == 'test@example.com'
+        assert data['user']['email'] == 'test.student@urios.edu.ph'
     
     def test_login_wrong_password(self, client):
         """Test login with wrong password fails."""
         # Register first
         client.post('/api/auth/register', json={
-            'email': 'test@example.com',
+            'email': 'test.student@urios.edu.ph',
             'password': 'password123',
             'name': 'Test User'
         })
         
         # Login with wrong password
         response = client.post('/api/auth/login', json={
-            'email': 'test@example.com',
+            'email': 'test.student@urios.edu.ph',
             'password': 'wrongpassword'
         })
         
@@ -125,7 +125,7 @@ class TestLoginFlow:
     def test_login_nonexistent_user(self, client):
         """Test login with nonexistent user fails."""
         response = client.post('/api/auth/login', json={
-            'email': 'nonexistent@example.com',
+            'email': 'nonexistent@urios.edu.ph',
             'password': 'password123'
         })
         
@@ -155,7 +155,7 @@ class TestAuthenticatedRoutes:
         """Test getting current user with valid token."""
         # Register and get token
         reg_response = client.post('/api/auth/register', json={
-            'email': 'test@example.com',
+            'email': 'test.student@urios.edu.ph',
             'password': 'password123',
             'name': 'Test User'
         })
@@ -168,7 +168,7 @@ class TestAuthenticatedRoutes:
         
         assert response.status_code == 200
         data = response.get_json()
-        assert data['user']['email'] == 'test@example.com'
+        assert data['user']['email'] == 'test.student@urios.edu.ph'
     
     def test_get_current_user_without_token(self, client):
         """Test getting current user without token returns 401."""
@@ -192,7 +192,7 @@ class TestLogoutFlow:
         """Test successful logout."""
         # Register and get token
         reg_response = client.post('/api/auth/register', json={
-            'email': 'test@example.com',
+            'email': 'test.student@urios.edu.ph',
             'password': 'password123',
             'name': 'Test User'
         })

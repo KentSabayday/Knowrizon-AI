@@ -60,76 +60,90 @@ def health_check():
 
 @api_bp.route('/health/nebius', methods=['GET'])
 def test_nebius_health():
-    """Test Nebius Token Factory connection and return live diagnostic status."""
+    """
+    Test Nebius Token Factory connection and return non-billable diagnostic status.
+    Strictly zero-inference: queries GET /models catalog only, never executes billable chat or embedding calls.
+    """
     import os
     import json
     import urllib.request
     import urllib.error
     from flask import jsonify
-    from app.services.agent_orchestrator import agent_orchestrator
     from app.services.nebius_config import _resolve_api_key
+    from app.services.nebius_policy import (
+        PINNED_ROUTES,
+        APPROVED_MODEL_IDS,
+        NebiusOperation
+    )
     
-    cfg = agent_orchestrator._config
-    api_key = (cfg.api_key or os.environ.get("NEBIUS_API_KEY") or _resolve_api_key() or "").strip()
-    base_url = cfg.base_url or "https://api.tokenfactory.eu-north1.nebius.com/v1/"
+    api_key = (os.environ.get("NEBIUS_API_KEY") or _resolve_api_key() or "").strip()
     masked_key = api_key[:12] + "..." + api_key[-6:] if len(api_key) > 20 else "NOT SET"
     
+    eu_route = PINNED_ROUTES[NebiusOperation.GENERAL_TEXT]
+    us_route = PINNED_ROUTES[NebiusOperation.VISION]
+    emb_route = PINNED_ROUTES[NebiusOperation.EMBEDDINGS]
+    
     status = {
-        "base_url": cfg.base_url,
+        "status": "healthy",
         "configured_key": masked_key,
-        "tutor_model": cfg.tutor_model.model_id,
-        "fallback_model": cfg.tutor_model.fallback_model_id,
+        "pinned_models": {
+            "general_text": eu_route.model_id,
+            "embeddings": emb_route.model_id,
+            "vision": us_route.model_id
+        },
+        "endpoints": {
+            "eu_north1": eu_route.base_url,
+            "us_central1": us_route.base_url
+        },
+        "catalog_check": {}
     }
     
     if not api_key:
         status["connected"] = False
-        status["error"] = "API key not found"
+        status["status"] = "unhealthy"
+        status["error"] = "NEBIUS_API_KEY is not configured"
         return jsonify(status), 503
         
-    req = urllib.request.Request(
-        base_url.rstrip('/') + '/models',
-        headers={"Authorization": f"Bearer {api_key}"}
-    )
+    # Check EU catalog (non-billable GET /models)
     try:
-        with urllib.request.urlopen(req, timeout=15.0) as resp:
+        req_eu = urllib.request.Request(
+            eu_route.base_url.rstrip('/') + '/models',
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+        with urllib.request.urlopen(req_eu, timeout=10.0) as resp:
             data = json.loads(resp.read().decode('utf-8'))
-            models = [m.get('id') for m in data.get('data', [])]
-            status["connected"] = True
-            status["available_models_count"] = len(models)
-            status["sample_models"] = models[:8]
-            
-            test_model = cfg.tutor_model.model_id
-            if test_model not in models and models:
-                test_model = models[0]
-                
-            test_req = urllib.request.Request(
-                base_url.rstrip('/') + '/chat/completions',
-                data=json.dumps({
-                    "model": test_model,
-                    "messages": [{"role": "user", "content": "Reply: 'OK'"}],
-                    "max_tokens": 5
-                }).encode('utf-8'),
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {api_key}"
-                },
-                method="POST"
-            )
-            with urllib.request.urlopen(test_req, timeout=15.0) as test_resp:
-                test_data = json.loads(test_resp.read().decode('utf-8'))
-                status["live_chat_test"] = {
-                    "model": test_model,
-                    "status": "success",
-                    "reply": test_data['choices'][0]['message']['content'].strip()
-                }
-            return jsonify(status), 200
-    except urllib.error.HTTPError as he:
-        err_body = he.read().decode('utf-8', errors='ignore')
-        status["connected"] = False
-        status["http_code"] = he.code
-        status["error"] = f"HTTP {he.code}: {err_body}"
-        return jsonify(status), 500
+            models = {m.get('id') for m in data.get('data', [])}
+            status["catalog_check"]["eu_north1"] = {
+                "connected": True,
+                "gpt_oss_120b_available": eu_route.model_id in models,
+                "qwen3_embedding_available": emb_route.model_id in models
+            }
     except Exception as e:
-        status["connected"] = False
-        status["error"] = f"{type(e).__name__}: {str(e)}"
-        return jsonify(status), 500
+        status["catalog_check"]["eu_north1"] = {
+            "connected": False,
+            "error": str(e)
+        }
+        
+    # Check US catalog (non-billable GET /models)
+    try:
+        req_us = urllib.request.Request(
+            us_route.base_url.rstrip('/') + '/models',
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+        with urllib.request.urlopen(req_us, timeout=10.0) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            models = {m.get('id') for m in data.get('data', [])}
+            status["catalog_check"]["us_central1"] = {
+                "connected": True,
+                "qwen3_8_27b_available": us_route.model_id in models
+            }
+    except Exception as e:
+        status["catalog_check"]["us_central1"] = {
+            "connected": False,
+            "error": str(e)
+        }
+        
+    status["connected"] = any(
+        c.get("connected") for c in status["catalog_check"].values()
+    )
+    return jsonify(status), 200

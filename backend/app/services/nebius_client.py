@@ -1,129 +1,188 @@
-"""Client for Nebius AI API interactions with zero-dependency HTTP fallback."""
+"""
+Client for Nebius AI API interactions enforcing the 3-model policy with strict boundary validation.
+"""
 import base64
+import io
 import json
 import logging
+import math
 import os
 import urllib.request
 import urllib.error
 from pathlib import Path
-from typing import Generator, Optional, Union
+from typing import Generator, List, Optional, Union, Dict, Any
 
 from app.services.nebius_config import NebiusConfig, ModelConfig, _resolve_api_key
+from app.services.nebius_policy import (
+    NebiusOperation,
+    PinnedModelRoute,
+    PINNED_ROUTES,
+    validate_operation_route,
+    validate_outbound_request,
+    PolicyViolationError,
+)
 
 logger = logging.getLogger(__name__)
 
 
+def _sanitize_log_metadata(meta: Dict[str, Any]) -> Dict[str, Any]:
+    """Redact sensitive credentials, prompt text, embeddings, and image payloads from logs."""
+    safe = {}
+    for k, v in meta.items():
+        if k in ("api_key", "authorization", "token", "password"):
+            safe[k] = "[REDACTED]"
+        elif k in ("prompt", "messages", "text", "content"):
+            safe[k] = f"[TEXT: {len(str(v))} chars]"
+        elif k in ("image_data", "image_base64", "file_data"):
+            safe[k] = f"[IMAGE_BYTES: {len(v) if hasattr(v, '__len__') else 'present'}]"
+        elif k in ("embedding", "embeddings", "vectors"):
+            safe[k] = "[EMBEDDING_VECTORS]"
+        else:
+            safe[k] = v
+    return safe
+
+
+class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Prevent redirects from escaping approved Nebius regional endpoints or changing schemes."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        from app.services.nebius_policy import APPROVED_HOSTS
+        from urllib.parse import urlparse
+        parsed = urlparse(newurl)
+        if parsed.scheme.lower() != "https" or parsed.netloc.lower() not in APPROVED_HOSTS:
+            logger.error("Security alert: Attempted unauthorized redirect to %s", newurl)
+            raise PolicyViolationError(f"Unauthorized redirect target: {newurl}")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 class NebiusClient:
-    """Client for Nebius AI API interactions using OpenAI-compatible API with urllib zero-dependency fallback."""
-    
+    """
+    Client for Nebius AI Token Factory enforcing strictly three pinned models across two regions:
+    1. General Text / Chat: openai/gpt-oss-120b in eu-north1 (POST /chat/completions)
+    2. Embeddings: Qwen/Qwen3-Embedding-8B in eu-north1 (POST /embeddings)
+    3. Vision Analysis: Qwen/Qwen3.8-27B in us-central1 (POST /chat/completions)
+    """
+
     def __init__(
         self,
         api_key: Optional[str] = None,
         config: Optional[NebiusConfig] = None
     ):
-        """
-        Initialize the Nebius client.
-        
-        Args:
-            api_key: Nebius API key. If None, reads from env or verified default.
-            config: Nebius configuration. Uses defaults if None.
-        """
         self._config = config or NebiusConfig.default()
-        
         if api_key is not None:
             self._config.api_key = api_key
-        
-        self._client = None
-        self._fallback_mode = False
-        self._fallback_reason = None
-        
-        self._initialize_client()
-    
-    def _initialize_client(self) -> None:
-        """Initialize the OpenAI client for Nebius API."""
+
+        self._eu_client = None
+        self._us_client = None
+        self._sdk_available = False
+
+        self._initialize_clients()
+
+    def _initialize_clients(self) -> None:
+        """Initialize regional OpenAI SDK clients with disabled SDK-internal retries."""
         api_key = (self._config.api_key or "").strip()
         if not api_key:
             api_key = _resolve_api_key()
             self._config.api_key = api_key
-        
+
+        if not api_key:
+            logger.info("Nebius API key not set. SDK clients not initialized.")
+            return
+
         try:
             from openai import OpenAI
             import httpx
-            
-            http_client = httpx.Client(
+
+            # EU Client: General Text & Embeddings
+            eu_http_client = httpx.Client(
                 timeout=httpx.Timeout(self._config.timeout or 60.0, connect=15.0),
                 limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
                 trust_env=True
             )
-            
-            self._client = OpenAI(
+            self._eu_client = OpenAI(
                 api_key=api_key,
-                base_url=self._config.base_url,
-                http_client=http_client
+                base_url=self._config.eu_base_url,
+                max_retries=0,  # Application owns retry budget
+                http_client=eu_http_client
             )
-            self._fallback_mode = False
-            self._fallback_reason = None
-            logger.info("Nebius client initialized successfully via OpenAI SDK with base URL: %s", self._config.base_url)
+
+            # US Client: Vision Analysis
+            us_http_client = httpx.Client(
+                timeout=httpx.Timeout(self._config.timeout or 60.0, connect=15.0),
+                limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
+                trust_env=True
+            )
+            self._us_client = OpenAI(
+                api_key=api_key,
+                base_url=self._config.us_base_url,
+                max_retries=0,  # Application owns retry budget
+                http_client=us_http_client
+            )
+
+            self._sdk_available = True
+            logger.info(
+                "Nebius SDK initialized: EU (eu-north1) and US (us-central1) with max_retries=0"
+            )
         except Exception as e:
-            logger.warning("OpenAI SDK init not available (%s). Will use zero-dependency direct HTTP.", e)
-            self._client = None
-            self._fallback_mode = False
-            self._fallback_reason = None
-    
+            logger.warning("OpenAI SDK init not available (%s). Using zero-dependency direct HTTP.", e)
+            self._eu_client = None
+            self._us_client = None
+            self._sdk_available = False
+
+    @property
+    def config(self) -> NebiusConfig:
+        return self._config
+
     def _call_direct_http(
         self,
-        model: str,
-        messages: list[dict],
-        temperature: float = 0.7,
-        max_tokens: int = 2048
-    ) -> str:
-        """Zero-dependency HTTP POST to Nebius Token Factory using standard library urllib."""
+        route: PinnedModelRoute,
+        payload: dict,
+        timeout: Optional[float] = None
+    ) -> dict:
+        """
+        Execute raw HTTP POST request to verified Nebius Token Factory endpoint.
+        Validates the outbound URL and serialized model immediately prior to dispatch.
+        """
         api_key = (self._config.api_key or _resolve_api_key()).strip()
-        url = self._config.base_url.rstrip('/') + '/chat/completions'
-        payload = json.dumps({
-            "model": model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens
-        }).encode('utf-8')
+        if not api_key:
+            raise RuntimeError("Nebius API key is missing. Set NEBIUS_API_KEY environment variable.")
+
+        url = route.full_url
+        model_name = payload.get("model", "")
         
+        # Immediate outbound firewall check
+        validate_outbound_request(url, model_name, route.operation)
+
+        serialized = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
             url,
-            data=payload,
+            data=serialized,
             headers={
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}"
+                "Authorization": f"Bearer {api_key}",
+                "User-Agent": "KnowRizon-AI/2.0"
             },
             method="POST"
         )
-        
+
+        opener = urllib.request.build_opener(SafeRedirectHandler())
+        call_timeout = timeout or self._config.timeout or 60.0
+
         try:
-            with urllib.request.urlopen(req, timeout=self._config.timeout or 60.0) as resp:
-                res_data = json.loads(resp.read().decode('utf-8'))
-                return res_data['choices'][0]['message']['content'] or ""
+            with opener.open(req, timeout=call_timeout) as resp:
+                resp_bytes = resp.read()
+                return json.loads(resp_bytes.decode("utf-8"))
         except urllib.error.HTTPError as he:
-            err_body = he.read().decode('utf-8', errors='ignore')
-            logger.error(f"Nebius HTTP Error {he.code}: {err_body}")
-            raise Exception(f"Nebius HTTP {he.code} {he.reason}: {err_body}")
+            err_body = he.read().decode("utf-8", errors="ignore")
+            logger.error("Nebius HTTP %d at %s: [Body size %d]", he.code, url, len(err_body))
+            raise RuntimeError(f"Nebius HTTP {he.code} {he.reason}: {err_body}") from he
         except Exception as ex:
-            logger.error(f"Nebius direct HTTP connection failed: {ex}")
+            logger.error("Nebius direct HTTP connection to %s failed: %s", url, ex)
             raise
-    
-    @property
-    def is_fallback_mode(self) -> bool:
-        """Check if client is running in fallback mode."""
-        return self._fallback_mode
-    
-    @property
-    def fallback_reason(self) -> Optional[str]:
-        """Get the reason for fallback mode, if applicable."""
-        return self._fallback_reason
-    
-    @property
-    def config(self) -> NebiusConfig:
-        """Get the current configuration."""
-        return self._config
-    
+
+    # ══════════════════════════════════════════════════════════════
+    # CAPABILITY 1: GENERAL TEXT / TUTORING / QUIZZES
+    # ══════════════════════════════════════════════════════════════
+
     def chat_completion(
         self,
         messages: list[dict],
@@ -131,112 +190,79 @@ class NebiusClient:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         stream: bool = False,
-        use_fallback: bool = False
+        use_fallback: bool = False,
+        feature: str = "chat"
     ) -> Union[str, Generator[str, None, None]]:
         """
-        Generate a real chat completion using candidate models on Nebius Token Factory.
-        Never intercepts with placeholder text when an API key is available.
+        Generate text completion strictly using 'openai/gpt-oss-120b' at the EU endpoint.
+        Reject all aliases, overrides, or cross-operation substitutions.
         """
-        model_config = self._config.tutor_model
-        primary = model or (model_config.fallback_model_id if use_fallback and model_config.fallback_model_id else model_config.model_id)
-        
-        candidates = [primary]
-        for fallback_cand in [
-            model_config.fallback_model_id,
-            "openai/gpt-oss-120b"
-        ]:
-            if fallback_cand and fallback_cand not in candidates:
-                candidates.append(fallback_cand)
-        
-        temp = temperature if temperature is not None else model_config.temperature
-        tokens = max_tokens if max_tokens is not None else model_config.max_tokens
-        
-        last_error = None
-        for candidate_model in candidates:
-            # 1. Attempt using OpenAI SDK client if initialized
-            if self._client is not None:
-                try:
-                    response = self._client.chat.completions.create(
-                        model=candidate_model,
-                        messages=messages,
-                        temperature=temp,
-                        max_tokens=tokens,
-                        stream=stream
-                    )
-                    
-                    if stream:
-                        return self._stream_response(response)
-                    else:
-                        return response.choices[0].message.content or ""
-                except Exception as e:
-                    last_error = e
-                    logger.warning(
-                        f"OpenAI SDK with model '{candidate_model}' failed: {type(e).__name__}: {e}. "
-                        "Trying direct HTTP or next model..."
-                    )
-            
-            # 2. Attempt zero-dependency direct HTTP
+        route = validate_operation_route(NebiusOperation.GENERAL_TEXT, model_id=model)
+        temp = temperature if temperature is not None else self._config.tutor_model.temperature
+        tokens = max_tokens if max_tokens is not None else self._config.tutor_model.max_tokens
+
+        log_meta = {
+            "feature": feature,
+            "operation": route.operation.value,
+            "model_id": route.model_id,
+            "region": route.region,
+            "stream": stream
+        }
+        logger.info("Executing General Text request: %s", _sanitize_log_metadata(log_meta))
+
+        # 1. Prefer OpenAI SDK if initialized
+        if self._sdk_available and self._eu_client is not None:
             try:
-                content = self._call_direct_http(
-                    model=candidate_model,
+                response = self._eu_client.chat.completions.create(
+                    model=route.model_id,
                     messages=messages,
                     temperature=temp,
-                    max_tokens=tokens
+                    max_tokens=tokens,
+                    stream=stream
                 )
                 if stream:
-                    def stream_text():
-                        words = content.split(' ')
-                        for i, w in enumerate(words):
-                            yield w + (' ' if i < len(words) - 1 else '')
-                    return stream_text()
-                return content
+                    return self._stream_response(response)
+                return response.choices[0].message.content or ""
             except Exception as e:
-                last_error = e
-                logger.warning(
-                    f"Direct HTTP with model '{candidate_model}' failed: {type(e).__name__}: {e}. "
-                    f"{'Trying next model...' if candidate_model != candidates[-1] else 'All models exhausted.'}"
-                )
-                continue
-        
-        logger.error(f"Chat completion failed across all models: {last_error}")
-        raise last_error
-    
+                logger.error("OpenAI SDK general chat failed: %s", e)
+                raise
+
+        # 2. Direct HTTP implementation
+        payload = {
+            "model": route.model_id,
+            "messages": messages,
+            "temperature": temp,
+            "max_tokens": tokens
+        }
+        res_data = self._call_direct_http(route, payload)
+        content = res_data["choices"][0]["message"]["content"] or ""
+
+        if stream:
+            def _fake_stream():
+                words = content.split(" ")
+                for i, w in enumerate(words):
+                    yield w + (" " if i < len(words) - 1 else "")
+            return _fake_stream()
+
+        return content
+
     def _stream_response(self, response) -> Generator[str, None, None]:
-        """Stream response chunks safely."""
+        """Stream chunks safely. Once output starts, report interruption without replaying."""
+        yielded_any = False
         try:
             for chunk in response:
-                if chunk.choices and chunk.choices[0].delta.content:
+                if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
+                    yielded_any = True
                     yield chunk.choices[0].delta.content
         except Exception as e:
-            logger.error(f"Error streaming response from Nebius: {e}")
+            logger.error("Stream interrupted during generation: %s", e)
+            if yielded_any:
+                yield "\n\n[Generation interrupted due to connection drop]"
             raise
-    
-    def _discover_vision_models(self) -> list[str]:
-        """Discover live vision-language models hosted on the active Nebius Token Factory endpoint."""
-        try:
-            api_key = (self._config.api_key or _resolve_api_key()).strip()
-            url = self._config.base_url.rstrip('/') + '/models'
-            req = urllib.request.Request(
-                url,
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "User-Agent": "Knowrizon-AI/1.0"
-                }
-            )
-            with urllib.request.urlopen(req, timeout=6.0) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
-                raw_models = [m.get("id") for m in data.get("data", []) if m.get("id")]
-                vision_models = []
-                for mid in raw_models:
-                    mid_lower = mid.lower()
-                    if any(v in mid_lower for v in ["vl", "vision", "nemotron-nano-vl", "llava", "multimodal"]):
-                        vision_models.append(mid)
-                if vision_models:
-                    logger.info(f"Discovered active Nebius vision models: {vision_models}")
-                    return vision_models
-        except Exception as e:
-            logger.info(f"Nebius model auto-discovery notice: {e}")
-        return []
+
+    # ══════════════════════════════════════════════════════════════
+    # CAPABILITY 2: VISION ANALYSIS (IMAGES & VIDEO FRAMES)
+    # ══════════════════════════════════════════════════════════════
 
     def vision_completion(
         self,
@@ -245,80 +271,70 @@ class NebiusClient:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
-        use_fallback: bool = False
+        use_fallback: bool = False,
+        feature: str = "vision"
     ) -> str:
-        """Generate a completion with image input using iterative model selection and direct HTTP fallback."""
-        model_config = self._config.vision_model
-        
-        # Disallow text-only models from ever receiving image payloads
-        text_only_disallowed = {
-            "openai/gpt-oss-120b",
-            "meta-llama/llama-3.3-70b-instruct",
-            "meta-llama/llama-3.1-70b-instruct",
-            "meta-llama/llama-3.1-8b-instruct",
-            "mistralai/mistral-nemo-instruct-2407"
-        }
+        """
+        Analyze visual materials strictly using 'Qwen/Qwen3.8-27B' at the US endpoint.
+        Receives real image bytes or video frames. Rejects empty data, text-only placeholders.
+        """
+        route = validate_operation_route(NebiusOperation.VISION, model_id=model)
+        temp = temperature if temperature is not None else self._config.vision_model.temperature
+        tokens = max_tokens if max_tokens is not None else self._config.vision_model.max_tokens
 
-        # 1. Gather candidate models, starting with configured primary
-        primary = model or (model_config.fallback_model_id if use_fallback and model_config.fallback_model_id else model_config.model_id)
-        candidates = []
-        if primary and primary.lower() not in text_only_disallowed:
-            candidates.append(primary)
+        # Process and validate image input
+        raw_bytes: bytes = b""
+        mime_type = "image/png"
 
-        # 2. Add dynamically discovered vision models
-        if not hasattr(self, "_discovered_vision_models"):
-            self._discovered_vision_models = self._discover_vision_models()
-
-        for disc in (self._discovered_vision_models or []):
-            if disc not in candidates and disc.lower() not in text_only_disallowed:
-                candidates.append(disc)
-
-        # 3. Add known standard Nebius vision models
-        known_nebius_vision = [
-            "nvidia/Nemotron-3.5-Super-VL",
-            "Qwen/Qwen2.5-VL-72B-Instruct",
-            "Qwen/Qwen2.5-VL-7B-Instruct",
-            "Qwen/Qwen2-VL-72B-Instruct",
-            "meta-llama/Llama-3.2-11B-Vision-Instruct",
-            "meta-llama/Llama-3.2-90B-Vision-Instruct"
-        ]
-        for fallback_cand in known_nebius_vision:
-            if fallback_cand not in candidates:
-                candidates.append(fallback_cand)
-
-        # Guarantee at least Qwen2.5-VL if all else empty
-        if not candidates:
-            candidates = ["Qwen/Qwen2.5-VL-72B-Instruct"]
-
-        # If image_data is a file path string, read the bytes
-        if isinstance(image_data, str) and (os.path.exists(image_data) or not image_data.startswith("data:")):
-            if os.path.exists(image_data):
-                try:
-                    with open(image_data, 'rb') as f:
-                        image_data = f.read()
-                except Exception as read_err:
-                    logger.warning(f"Failed to read image from path '{image_data}': {read_err}")
-
-        # Detect mime type & encode base64
-        mime_type = "image/jpeg"
         if isinstance(image_data, bytes):
-            if image_data.startswith(b'\x89PNG'):
-                mime_type = "image/png"
-            elif image_data.startswith(b'GIF8'):
-                mime_type = "image/gif"
-            elif image_data.startswith(b'RIFF') and b'WEBP' in image_data[:16]:
-                mime_type = "image/webp"
-            elif image_data.startswith(b'BM'):
-                mime_type = "image/bmp"
-            image_base64 = base64.b64encode(image_data).decode('utf-8')
+            raw_bytes = image_data
         elif isinstance(image_data, str):
             if image_data.startswith("data:") and ";base64," in image_data:
-                header, image_base64 = image_data.split(";base64,", 1)
+                header, b64_str = image_data.split(";base64,", 1)
                 mime_type = header.replace("data:", "")
+                raw_bytes = base64.b64decode(b64_str)
+            elif os.path.exists(image_data):
+                with open(image_data, "rb") as f:
+                    raw_bytes = f.read()
             else:
-                image_base64 = image_data
+                # Direct base64 string
+                try:
+                    raw_bytes = base64.b64decode(image_data)
+                except Exception:
+                    raise ValueError("image_data string is neither an existing file path nor valid base64.")
         else:
             raise ValueError(f"Unsupported image_data type: {type(image_data)}")
+
+        if not raw_bytes or len(raw_bytes) < 8:
+            raise ValueError("image_data contains insufficient bytes for vision processing.")
+
+        # Detect or verify format from magic bytes
+        if raw_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+            mime_type = "image/png"
+        elif raw_bytes.startswith(b"\xff\xd8\xff"):
+            mime_type = "image/jpeg"
+        elif raw_bytes.startswith(b"GIF8"):
+            mime_type = "image/gif"
+        elif raw_bytes.startswith(b"RIFF") and b"WEBP" in raw_bytes[:16]:
+            mime_type = "image/webp"
+        elif raw_bytes.startswith(b"BM"):
+            mime_type = "image/bmp"
+
+        # Bound payload size: max 12 MB
+        if len(raw_bytes) > 12 * 1024 * 1024:
+            try:
+                from PIL import Image
+                img = Image.open(io.BytesIO(raw_bytes))
+                img.thumbnail((1600, 1600))
+                out_buf = io.BytesIO()
+                img.save(out_buf, format="PNG")
+                raw_bytes = out_buf.getvalue()
+                mime_type = "image/png"
+            except Exception as e:
+                logger.warning("Could not downscale large image: %s", e)
+
+        image_base64 = base64.b64encode(raw_bytes).decode("utf-8")
+        data_url = f"data:{mime_type};base64,{image_base64}"
 
         vision_messages = [
             {
@@ -327,80 +343,129 @@ class NebiusClient:
                     {"type": "text", "text": prompt},
                     {
                         "type": "image_url",
-                        "image_url": {
-                            "url": f"data:{mime_type};base64,{image_base64}"
-                        }
+                        "image_url": {"url": data_url}
                     }
                 ]
             }
         ]
-        
-        temp = temperature if temperature is not None else model_config.temperature
-        tokens = max_tokens if max_tokens is not None else model_config.max_tokens
-        
-        last_error = None
-        for candidate_model in candidates:
-            # 1. Attempt using OpenAI SDK client
-            if self._client is not None:
-                try:
-                    response = self._client.chat.completions.create(
-                        model=candidate_model,
-                        messages=vision_messages,
-                        temperature=temp,
-                        max_tokens=tokens
-                    )
-                    content = response.choices[0].message.content or ""
-                    if content and content.strip():
-                        return content
-                except Exception as e:
-                    last_error = e
-                    logger.warning(f"OpenAI SDK vision call with '{candidate_model}' failed: {e}. Trying direct HTTP or next model...")
-            
-            # 2. Attempt zero-dependency direct HTTP
+
+        log_meta = {
+            "feature": feature,
+            "operation": route.operation.value,
+            "model_id": route.model_id,
+            "region": route.region,
+            "bytes_size": len(raw_bytes),
+            "mime_type": mime_type
+        }
+        logger.info("Executing Vision request: %s", _sanitize_log_metadata(log_meta))
+
+        # 1. Prefer OpenAI SDK US client if available
+        if self._sdk_available and self._us_client is not None:
             try:
-                content = self._call_direct_http(
-                    model=candidate_model,
+                response = self._us_client.chat.completions.create(
+                    model=route.model_id,
                     messages=vision_messages,
                     temperature=temp,
                     max_tokens=tokens
                 )
-                if content and content.strip():
-                    return content
+                content = response.choices[0].message.content or ""
+                if not content.strip():
+                    raise RuntimeError("Nebius vision model returned an empty response.")
+                return content
             except Exception as e:
-                last_error = e
-                logger.warning(f"Direct HTTP vision call with '{candidate_model}' failed: {e}.")
-                continue
-        
-        logger.error(f"Vision completion failed across all candidate models: {last_error}")
-        if last_error:
-            raise last_error
-        raise RuntimeError("No vision models could complete the request.")
-    
+                logger.error("OpenAI SDK vision call failed: %s", e)
+                raise
+
+        # 2. Direct HTTP to US endpoint
+        payload = {
+            "model": route.model_id,
+            "messages": vision_messages,
+            "temperature": temp,
+            "max_tokens": tokens
+        }
+        res_data = self._call_direct_http(route, payload)
+        content = res_data["choices"][0]["message"]["content"] or ""
+        if not content.strip():
+            raise RuntimeError("Nebius vision model returned an empty response.")
+        return content
+
+    # ══════════════════════════════════════════════════════════════
+    # CAPABILITY 3: TEXT EMBEDDINGS (RETRIEVAL & VECTOR SEARCH)
+    # ══════════════════════════════════════════════════════════════
+
     def create_embedding(
         self,
-        text: str,
+        text: Union[str, List[str]],
         model: Optional[str] = None,
-        use_fallback: bool = False
-    ) -> list[float]:
-        """Create an embedding vector for text using iterative model selection."""
-        model_config = self._config.embedding_model
-        primary = model or (model_config.fallback_model_id if use_fallback and model_config.fallback_model_id else model_config.model_id)
-        candidates = [primary]
-        if not use_fallback and model_config.fallback_model_id and model_config.fallback_model_id not in candidates:
-            candidates.append(model_config.fallback_model_id)
-        
-        last_error = None
-        for candidate_model in candidates:
-            if self._client is not None:
-                try:
-                    response = self._client.embeddings.create(
-                        model=candidate_model,
-                        input=text
-                    )
-                    return response.data[0].embedding
-                except Exception as e:
-                    last_error = e
-                    continue
-        
-        # Fallback zero-vector if embedding endpoint is offline
-        return [0.0] * 4096
+        use_fallback: bool = False,
+        feature: str = "embeddings"
+    ) -> Union[List[float], List[List[float]]]:
+        """
+        Generate embeddings strictly using 'Qwen/Qwen3-Embedding-8B' at the EU endpoint.
+        Validates response count, non-zero float contents, and exact 4,096 dimension.
+        NEVER returns fabricated zero-vectors.
+        """
+        route = validate_operation_route(NebiusOperation.EMBEDDINGS, model_id=model)
+        is_batch = isinstance(text, list)
+        inputs = [t.strip() for t in text] if is_batch else [str(text).strip()]
+
+        if not inputs or any(len(t) == 0 for t in inputs):
+            raise ValueError("Embedding input text cannot be empty.")
+
+        log_meta = {
+            "feature": feature,
+            "operation": route.operation.value,
+            "model_id": route.model_id,
+            "region": route.region,
+            "input_count": len(inputs)
+        }
+        logger.info("Executing Embedding request: %s", _sanitize_log_metadata(log_meta))
+
+        embeddings: List[List[float]] = []
+
+        # 1. Prefer OpenAI SDK EU client
+        if self._sdk_available and self._eu_client is not None:
+            try:
+                response = self._eu_client.embeddings.create(
+                    model=route.model_id,
+                    input=inputs
+                )
+                data_items = sorted(response.data, key=lambda x: x.index)
+                embeddings = [item.embedding for item in data_items]
+            except Exception as e:
+                logger.error("OpenAI SDK embedding call failed: %s", e)
+                raise
+        else:
+            # 2. Direct HTTP to EU /embeddings endpoint
+            payload = {
+                "model": route.model_id,
+                "input": inputs if is_batch else inputs[0]
+            }
+            res_data = self._call_direct_http(route, payload)
+            data_items = sorted(res_data.get("data", []), key=lambda x: x.get("index", 0))
+            embeddings = [item.get("embedding", []) for item in data_items]
+
+        # Rigorous validation of returned vectors
+        expected_dim = route.expected_dim or 4096
+        if len(embeddings) != len(inputs):
+            raise RuntimeError(
+                f"Nebius embedding count mismatch: expected {len(inputs)}, got {len(embeddings)}."
+            )
+
+        for idx, vec in enumerate(embeddings):
+            if not isinstance(vec, list) or len(vec) != expected_dim:
+                raise RuntimeError(
+                    f"Nebius embedding dimension mismatch for item {idx}: "
+                    f"expected {expected_dim}, got {len(vec) if isinstance(vec, list) else type(vec)}."
+                )
+            if not all(isinstance(v, (int, float)) and math.isfinite(v) for v in vec):
+                raise RuntimeError(f"Embedding contains non-finite numeric values at item {idx}.")
+            if all(v == 0.0 for v in vec):
+                raise RuntimeError(f"Rejected invalid all-zero embedding returned from provider at item {idx}.")
+
+        return embeddings if is_batch else embeddings[0]
+
+
+# Global singleton instance
+nebius_client = NebiusClient()
+

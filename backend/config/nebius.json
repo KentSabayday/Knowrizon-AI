@@ -1,6 +1,10 @@
 {
   "nebius": {
     "base_url": "https://api.tokenfactory.eu-north1.nebius.com/v1/",
+    "regional_base_urls": {
+      "eu": "https://api.tokenfactory.eu-north1.nebius.com/v1/",
+      "us": "https://api.tokenfactory.us-central1.nebius.com/v1/"
+    },
     "models": {
       "tutor": {
         "model_id": "openai/gpt-oss-120b",
@@ -24,15 +28,15 @@
         "top_p": 1.0
       },
       "vision": {
-        "model_id": "nvidia/Nemotron-3.5-Super-VL",
-        "fallback_model_id": "nvidia/Nemotron-3.5-Super-VL",
+        "model_id": "Qwen/Qwen3.8-27B",
+        "fallback_model_id": "Qwen/Qwen3.8-27B",
         "temperature": 0.5,
         "max_tokens": 2048,
         "top_p": 1.0
       },
       "embedding": {
-        "model_id": "openai/gpt-oss-120b",
-        "fallback_model_id": "openai/gpt-oss-120b"
+        "model_id": "Qwen/Qwen3-Embedding-8B",
+        "fallback_model_id": "Qwen/Qwen3-Embedding-8B"
       }
     },
     "retry": {
